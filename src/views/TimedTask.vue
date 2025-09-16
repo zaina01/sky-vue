@@ -41,12 +41,13 @@
         </el-row>
         <el-row :gutter="24" justify="space-between">
           <el-col :span="12"
-            ><el-form-item label="任务组"> <el-input v-model="form.jobGroup" /> </el-form-item
-          ></el-col>
-          <el-col :span="12"
             ><el-form-item label="cron表达式">
-              <el-input v-model="form.cronExpression" /> </el-form-item
-          ></el-col>
+              <!-- <el-input v-model="form.cronExpression" />  -->
+              <el-button @click="showCronEditor = true">{{
+                form.cronExpression ? form.cronExpression : '编辑'
+              }}</el-button>
+            </el-form-item></el-col
+          >
         </el-row>
         <el-row :gutter="24" justify="space-between">
           <el-col :span="12"
@@ -66,16 +67,9 @@
             <el-form-item label="调用目标"> <el-input v-model="form.invokeTarget" /> </el-form-item
           ></el-col>
         </el-row>
-        <el-row :gutter="24" justify="space-between">
-          <el-col :span="12">
-            <el-form-item label="调用类型">
-              <el-input v-model="form.invokeType" />
-            </el-form-item>
-          </el-col>
-        </el-row>
         <el-row :gutter="24" justify="end">
           <el-col :span="4">
-            <el-button type="danger">取消</el-button>
+            <el-button type="danger" @click="editFlag = false">取消</el-button>
           </el-col>
           <el-col :span="2">
             <el-button type="primary">确定</el-button>
@@ -103,12 +97,22 @@
         </template>
       </el-upload>
     </el-dialog>
+    <!-- Cron表达式编辑器 -->
+    <el-dialog title="Cron表达式编辑器" v-model="showCronEditor" width="800px" top="5vh">
+      <cron-editor v-model="form.cronExpression" ref="cronEditorRef" />
+      <template #footer>
+        <el-button @click="showCronEditor = false">取消</el-button>
+        <el-button type="primary" @click="validateCron">确认</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 <script setup lang="jsx">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { genFileId, ElMessage } from 'element-plus'
+import CronEditor from '../components/CronEditor.vue'
+const cronEditorRef = ref(null)
 const router = useRouter()
 const queryParams = ref({
   pageNum: 1,
@@ -133,6 +137,7 @@ const dataList = ref([
     invokeType: 'ooo',
   },
 ])
+const showCronEditor = ref(false)
 const beforeUpload = (file) => {
   const isJar = file.name.endsWith('.jar')
   const isLt2M = file.size / 1024 / 1024 < 20
@@ -152,6 +157,14 @@ const beforeUpload = (file) => {
     return false
   }
   return true
+}
+const validateCron = () => {
+  if (cronEditorRef.value) {
+    const isValid = cronEditorRef.value.localParseExpression(form.value.cronExpression)
+    if (isValid != false) {
+      showCronEditor.value = false
+    }
+  }
 }
 const submitUpload = () => {
   upload.value.submit()
@@ -188,14 +201,7 @@ const columns = ref([
     key: 'jobName',
     dataKey: 'jobName',
     title: '任务名称',
-    width: 100,
-    align: 'center',
-  },
-  {
-    key: 'jobGroup',
-    dataKey: 'jobGroup',
-    title: '任务组',
-    width: 80,
+    width: 150,
     align: 'center',
   },
   {
@@ -209,41 +215,27 @@ const columns = ref([
     key: 'jobStatus',
     dataKey: 'jobStatus',
     title: '状态',
-    width: 80,
+    width: 120,
     align: 'center',
   },
   {
     key: 'misfirePolicy',
     dataKey: 'misfirePolicy',
     title: '错过触发处理策略',
-    width: 130,
+    width: 180,
     align: 'center',
   },
   {
     key: 'concurrent',
     dataKey: 'concurrent',
     title: '并发执行策略',
-    width: 100,
-    align: 'center',
-  },
-  {
-    key: 'invokeTarget',
-    dataKey: 'invokeTarget',
-    title: '调用目标',
-    width: 100,
-    align: 'center',
-  },
-  {
-    key: 'invokeType',
-    dataKey: 'invokeType',
-    title: '调用类型',
-    width: 80,
+    width: 180,
     align: 'center',
   },
   {
     key: 'action',
     title: '操作',
-    width: 250,
+    width: 300,
     align: 'center',
     cellRenderer: ({ rowData }) => (
       <div class="action-buttons">
