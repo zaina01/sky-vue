@@ -10,8 +10,12 @@
           placeholder="例如: 0 0 2 * * ?"
           @input="handleInputChange"
         />
-        <button class="btn btn-primary" @click="localParseExpression">解析</button>
-        <button class="btn btn-default" @click="resetExpression">重置</button>
+        <div class="rigin-button">
+          <el-button @click="localParseExpression" type="primary" :loading="parseExpressionFlag"
+            >解析</el-button
+          >
+          <el-button @click="resetExpression" type="primary">重置</el-button>
+        </div>
       </div>
       <p>
         当前表达式: <strong>{{ cronExpression }}</strong>
@@ -92,9 +96,9 @@
     <!-- 预览区域 -->
     <div class="preview-section">
       <h3>执行时间预览</h3>
-      <p>
+      <!-- <p>
         下次执行时间: <strong>{{ nextExecutionTime }}</strong>
-      </p>
+      </p>-->
 
       <div class="next-times">
         <div class="time-item" v-for="(time, index) in nextExecutionTimes" :key="index">
@@ -109,7 +113,7 @@
 import { ref, computed, watch } from 'vue'
 import TimeUnitEditor from './TimeUnitEditor.vue'
 import SpecialOptionEditor from './SpecialOptionEditor.vue'
-import { CronExpressionParser } from 'cron-parser'
+import { valid, nextExecutions } from '../api/cronParser'
 import { ElMessage } from 'element-plus'
 export default {
   name: 'CronEditor',
@@ -137,7 +141,7 @@ export default {
     const cronExpression = ref(props.modelValue)
     const nextExecutionTime = ref('')
     const nextExecutionTimes = ref([])
-
+    const parseExpressionFlag = ref(false)
     // 选项定义
     const dayOptions = [
       { label: '不指定', value: '?' },
@@ -155,6 +159,33 @@ export default {
       { label: '每年', value: '*' },
       { label: '2023-2030', value: '2023-2030' },
     ]
+
+    const getNextExecutions = async (cron, count) => {
+      const { data } = await nextExecutions(cron, count)
+      if (data.code == 200) {
+        console.log(data.data)
+        const times = data.data
+        return times
+      } else {
+        console.log(data.msg)
+        ElMessage({
+          message: data.msg,
+          type: 'error',
+        })
+      }
+    }
+    const isValidCron = async (cron) => {
+      const { data } = await valid(cron)
+      if (data.code == 200) {
+        return true
+      } else {
+        ElMessage({
+          message: data.msg,
+          type: 'error',
+        })
+        return false
+      }
+    }
     // 解析cron表达式
     const parseCronExpression = (expr) => {
       const parts = expr.split(' ')
@@ -179,51 +210,47 @@ export default {
     }
 
     // 计算下次执行时间（模拟）
-    const calculateNextExecutionTimes = (expression) => {
-      try {
-        // 使用正确的解析方式
-        const interval = CronExpressionParser.parse(expression, { strict: true })
-        // 获取下一次执行时间
-        const nextTime = interval.next().toDate()
-        nextExecutionTime.value = formatDate(nextTime)
+    const calculateNextExecutionTimes = async (expression) => {
+      // 使用正确的解析方式
 
-        // 获取接下来5次执行时间
-        const times = []
-        for (let i = 0; i < 6; i++) {
-          const next = interval.next().toDate()
-          times.push(formatDate(next))
-        }
-        nextExecutionTimes.value = times
+      // 获取下一次执行时间
+      // const nextTime = interval.next().toDate()
+      // nextExecutionTime.value = formatDate(nextTime)
+      const times = await getNextExecutions(expression, 6)
+      console.log('calculateNextExecutionTimes' + times)
+      // 获取接下来5次执行时间
+      // const times = []
+      // for (let i = 0; i < 6; i++) {
+      //   const next = interval.next().toDate()
+      //   times.push(formatDate(next))
+      // }
+      if (times && times.length > 0) {
+        nextExecutionTimes.value = times.map((date) => date.replace('T', ' '))
         ElMessage({
           message: '解析成功',
           type: 'success',
         })
-      } catch (error) {
-        console.error('Error parsing cron expression:', error)
-        ElMessage({
-          message: '无效的Cron表达式，请检查格式! 严格模式下不允许矛盾的日期和星期组合',
-          type: 'error',
-        })
-        nextExecutionTime.value = '无法计算执行时间: 无效的Cron表达式'
+      } else {
         nextExecutionTimes.value = []
       }
+      parseExpressionFlag.value = false
     }
     // 辅助函数：格式化日期
-    const formatDate = (date) => {
-      return date.toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      })
-    }
+    // const formatDate = (date) => {
+    //   return date.toLocaleString('zh-CN', {
+    //     year: 'numeric',
+    //     month: '2-digit',
+    //     day: '2-digit',
+    //     hour: '2-digit',
+    //     minute: '2-digit',
+    //     second: '2-digit',
+    //     hour12: false,
+    //   })
+    // }
 
     // 初始化
     const cronParts = ref(parseCronExpression(props.modelValue))
-    calculateNextExecutionTimes(props.modelValue)
+    // calculateNextExecutionTimes(props.modelValue)
 
     // 计算属性
     const seconds = computed(() => cronParts.value.seconds)
@@ -258,25 +285,21 @@ export default {
       // }
     }
 
-    const isValidCronExpression = (expr) => {
-      try {
-        CronExpressionParser.parse(expr, { strict: true })
-        return true
-      } catch (error) {
-        console.log(error)
-        ElMessage({
-          message: '无效的Cron表达式，请检查格式! 严格模式下不允许矛盾的日期和星期组合',
-          type: 'error',
-        })
-        return false
-      }
-      // const parts = expr.split(' ')
-      // return parts.length >= 6 && parts.length <= 7
+    const isValidCronExpression = async (expr) => {
+      return await isValidCron(expr)
     }
+    // const parts = expr.split(' ')
+    // return parts.length >= 6 && parts.length <= 7
 
     // 解析表达式
-    const localParseExpression = () => {
-      if (!isValidCronExpression(cronExpression.value)) {
+    const localParseExpression = async () => {
+      parseExpressionFlag.value = true
+      nextExecutionTime.value = '无法计算执行时间: 无效的Cron表达式'
+      nextExecutionTimes.value = []
+      const flag = await isValidCronExpression(cronExpression.value)
+      console.log(flag)
+      if (!flag) {
+        parseExpressionFlag.value = false
         return false
       }
       try {
@@ -341,7 +364,7 @@ export default {
         }, delay)
       }
     }
-    const debouncedCalculate = debounce(calculateNextExecutionTimes, 3000)
+    const debouncedCalculate = debounce(calculateNextExecutionTimes, 2500)
     // 监听props变化
     watch(
       () => props.modelValue,
@@ -369,6 +392,7 @@ export default {
       month,
       dayOfWeek,
       year,
+      parseExpressionFlag,
       updateTimeUnit,
       handleInputChange,
       localParseExpression,
@@ -490,5 +514,10 @@ export default {
   border-radius: 4px;
   border: 1px solid #adc6ff;
   text-align: center;
+}
+.rigin-button {
+  display: flex;
+  justify-content: center; /* 水平居中 */
+  align-items: center; /* 垂直居中 */
 }
 </style>

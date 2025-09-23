@@ -1,19 +1,34 @@
 import request from '../utils/request'
 
-export function login(username, password, code, uuid) {
-  const data = {
-    username,
-    password,
-    code,
-    uuid,
-  }
+export function addJob(data) {
   return request({
-    url: '/login',
-    headers: {
-      isToken: false,
-      repeatSubmit: false,
-    },
+    url: '/job',
     method: 'post',
     data: data,
+  })
+}
+export function updateJob(data) {
+  return request({
+    url: '/job',
+    method: 'put',
+    data: data,
+  })
+}
+export function deleteJob(id) {
+  return request({
+    url: `/job/${id}`,
+    method: 'delete',
+  })
+}
+export function selectJobById(id) {
+  return request({
+    url: `/job/${id}`,
+    method: 'get',
+  })
+}
+export function selectJobList() {
+  return request({
+    url: '/job',
+    method: 'get',
   })
 }

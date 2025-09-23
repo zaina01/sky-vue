@@ -30,21 +30,21 @@
         <el-row :gutter="24" justify="space-between">
           <el-col :span="12">
             <el-form-item label="id">
-              <el-input v-model="form.id" />
+              <el-input v-model="form.jobId" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <!-- <el-col :span="12">
             <el-form-item label="任务名称">
               <el-input v-model="form.jobName" />
             </el-form-item>
-          </el-col>
+          </el-col> -->
         </el-row>
         <el-row :gutter="24" justify="space-between">
           <el-col :span="12"
             ><el-form-item label="cron表达式">
               <!-- <el-input v-model="form.cronExpression" />  -->
               <el-button @click="showCronEditor = true">{{
-                form.cronExpression ? form.cronExpression : '编辑'
+                form.cronExpression ? form.cronExpression : '编辑cron表达式'
               }}</el-button>
             </el-form-item></el-col
           >
@@ -63,16 +63,16 @@
             <el-form-item label="并发执行策略">
               <el-input v-model="form.concurrent" /> </el-form-item
           ></el-col>
-          <el-col :span="12">
+          <!-- <el-col :span="12">
             <el-form-item label="调用目标"> <el-input v-model="form.invokeTarget" /> </el-form-item
-          ></el-col>
+          ></el-col> -->
         </el-row>
         <el-row :gutter="24" justify="end">
           <el-col :span="4">
             <el-button type="danger" @click="editFlag = false">取消</el-button>
           </el-col>
           <el-col :span="2">
-            <el-button type="primary">确定</el-button>
+            <el-button type="primary" @click="submitUpdate">确定</el-button>
           </el-col>
         </el-row>
       </el-form>
@@ -81,12 +81,13 @@
       <el-upload
         ref="upload"
         class="upload-demo"
-        action="/upload"
+        action="http://localhost:8080/job/install"
         :limit="1"
         accept=".jar"
         :on-exceed="handleExceed"
         :auto-upload="false"
         :before-upload="beforeUpload"
+        :on-success="uploadSuccess"
       >
         <template #trigger>
           <el-button type="primary">选择</el-button>
@@ -108,10 +109,11 @@
   </div>
 </template>
 <script setup lang="jsx">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { genFileId, ElMessage } from 'element-plus'
+import { genFileId, ElMessage, ElMessageBox } from 'element-plus'
 import CronEditor from '../components/CronEditor.vue'
+import { updateJob, deleteJob, selectJobById, selectJobList } from '../api/TimedTask'
 const cronEditorRef = ref(null)
 const router = useRouter()
 const queryParams = ref({
@@ -124,19 +126,20 @@ const upload = ref()
 const addFlag = ref(false)
 const editFlag = ref(false)
 const form = ref({})
-const dataList = ref([
-  {
-    jobId: 1,
-    jobName: 'ooo',
-    jobGroup: 'ooo',
-    cronExpression: 'ooo',
-    jobStatus: 'ooo',
-    misfirePolicy: 'ooo',
-    concurrent: 'ooo',
-    invokeTarget: 'ooo',
-    invokeType: 'ooo',
-  },
-])
+const dataList = ref([])
+// const dataList = ref([
+//   {
+//     jobId: 1,
+//     jobName: 'ooo',
+//     jobGroup: 'ooo',
+//     cronExpression: 'ooo',
+//     jobStatus: 'ooo',
+//     misfirePolicy: 'ooo',
+//     concurrent: 'ooo',
+//     invokeTarget: 'ooo',
+//     invokeType: 'ooo',
+//   },
+// ])
 const showCronEditor = ref(false)
 const beforeUpload = (file) => {
   const isJar = file.name.endsWith('.jar')
@@ -158,9 +161,9 @@ const beforeUpload = (file) => {
   }
   return true
 }
-const validateCron = () => {
+const validateCron = async () => {
   if (cronEditorRef.value) {
-    const isValid = cronEditorRef.value.localParseExpression(form.value.cronExpression)
+    const isValid = await cronEditorRef.value.localParseExpression(form.value.cronExpression)
     if (isValid != false) {
       showCronEditor.value = false
     }
@@ -168,6 +171,23 @@ const validateCron = () => {
 }
 const submitUpload = () => {
   upload.value.submit()
+}
+const uploadSuccess = (res, uploadFile, uploadFiles) => {
+  if (res.code == 200) {
+    ElMessage({
+      message: res.msg,
+      type: 'success',
+    })
+    uploadFiles.length = 0
+    addFlag.value = false
+    getJobList()
+  } else {
+    ElMessage({
+      message: res.msg,
+      type: 'error',
+    })
+    uploadFiles.length = 0
+  }
 }
 const handleExceed = (files) => {
   upload.value.clearFiles()
@@ -179,15 +199,66 @@ const handleUser = (rowData) => {
   console.log(rowData.id)
   router.push('/test/' + rowData.id)
 }
-const handleDelete = () => {
-  console.log('handleDelete')
+const handleDelete = (rowData) => {
+  const { jobId, jobName } = rowData
+  ElMessageBox.confirm(`确定要删除 ${jobName} 任务吗?`, '删除', {
+    confirmButtonText: 'OK',
+    cancelButtonText: 'Cancel',
+    type: 'warning',
+  }).then(() => {
+    //    delJob(jobId)
+    ElMessage({
+      message: '功能开发中',
+      type: 'info',
+    })
+  })
+}
+const delJob = async (id) => {
+  const { data } = await deleteJob(id)
+  if (data.code == 200) {
+    ElMessage({
+      message: data.msg,
+      type: 'success',
+    })
+    editFlag.value = false
+    getJobList()
+  }
 }
 const onAdd = () => {
   addFlag.value = true
 }
+const submitUpdate = async () => {
+  const { data } = await updateJob(form.value)
+  if (data.code == 200) {
+    ElMessage({
+      message: data.msg,
+      type: 'success',
+    })
+    editFlag.value = false
+    getJobList()
+  }
+}
 const onSubmit = () => {}
-const handleEdit = () => {
+const handleEdit = (rowData) => {
   editFlag.value = true
+  console.log(rowData)
+  getJob(rowData.jobId)
+}
+onMounted(() => {
+  console.log(111)
+  getJobList()
+})
+const getJobList = async () => {
+  const { data } = await selectJobList()
+  if (data.code == 200) {
+    dataList.value = data.data
+  }
+}
+const getJob = async (id) => {
+  const { data } = await selectJobById(id)
+  if (data.code == 200) {
+    form.value = data.data
+  }
 }
 const columns = ref([
   {
