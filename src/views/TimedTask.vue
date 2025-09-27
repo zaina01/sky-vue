@@ -27,18 +27,18 @@
     </div>
     <el-dialog v-model="editFlag" title="修改" width="800" :align-center="true">
       <el-form :model="form" label-width="auto" style="max-width: 600px" class="centered-form">
-        <el-row :gutter="24" justify="space-between">
+        <!-- <el-row :gutter="24" justify="space-between">
           <el-col :span="12">
             <el-form-item label="id">
               <el-input v-model="form.jobId" />
             </el-form-item>
           </el-col>
-          <!-- <el-col :span="12">
+          <el-col :span="12">
             <el-form-item label="任务名称">
               <el-input v-model="form.jobName" />
             </el-form-item>
-          </el-col> -->
-        </el-row>
+          </el-col>
+        </el-row> -->
         <el-row :gutter="24" justify="space-between">
           <el-col :span="12"
             ><el-form-item label="cron表达式">
@@ -51,21 +51,26 @@
         </el-row>
         <el-row :gutter="24" justify="space-between">
           <el-col :span="12"
-            ><el-form-item label="状态"> <el-input v-model="form.jobStatus" /> </el-form-item
-          ></el-col>
-          <el-col :span="12"
             ><el-form-item label="错过触发处理策略">
-              <el-input v-model="form.misfirePolicy" /> </el-form-item
+              <el-select v-model="form.misfirePolicy"
+                ><el-option
+                  v-for="item in misfirePolicyMaps"
+                  :key="item.key"
+                  :label="item.label"
+                  :value="item.value"
+                /> </el-select></el-form-item
           ></el-col>
-        </el-row>
-        <el-row :gutter="24" justify="space-between">
           <el-col :span="12">
             <el-form-item label="并发执行策略">
-              <el-input v-model="form.concurrent" /> </el-form-item
+              <el-select v-model="form.concurrent"
+                ><el-option
+                  v-for="item in concurrentMaps"
+                  :key="item.key"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select> </el-form-item
           ></el-col>
-          <!-- <el-col :span="12">
-            <el-form-item label="调用目标"> <el-input v-model="form.invokeTarget" /> </el-form-item
-          ></el-col> -->
         </el-row>
         <el-row :gutter="24" justify="end">
           <el-col :span="4">
@@ -113,7 +118,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { genFileId, ElMessage, ElMessageBox } from 'element-plus'
 import CronEditor from '../components/CronEditor.vue'
-import { updateJob, deleteJob, selectJobById, selectJobList } from '../api/TimedTask'
+import { updateJob, deleteJob, selectJobById, selectJobList, updateStatus } from '../api/TimedTask'
 const cronEditorRef = ref(null)
 const router = useRouter()
 const queryParams = ref({
@@ -127,6 +132,7 @@ const addFlag = ref(false)
 const editFlag = ref(false)
 const form = ref({})
 const dataList = ref([])
+
 // const dataList = ref([
 //   {
 //     jobId: 1,
@@ -197,9 +203,38 @@ const handleExceed = (files) => {
 }
 const handleUser = (rowData) => {
   console.log(rowData.id)
-  router.push('/test/' + rowData.id)
+  router.push('/test/' + rowData.jobId)
+}
+const handleLog = (rowData) => {
+  router.push('/log/' + rowData.jobId)
+}
+const setStatus = async (rowData) => {
+  console.log(rowData)
+  const { jobName } = rowData
+  await ElMessageBox.confirm(`确定要变更 ${jobName} 任务状态吗?`, '状态变更', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+  //    delJob(jobId)
+  const { data } = await updateStatus(rowData)
+  if (data.code == 200) {
+    ElMessage({
+      message: data.msg,
+      type: 'success',
+    })
+    console.log('success')
+    return true
+  } else {
+    ElMessage({
+      message: data.msg,
+      type: 'error',
+    })
+  }
+  return false
 }
 const handleDelete = (rowData) => {
+  console.log(rowData)
   const { jobId, jobName } = rowData
   ElMessageBox.confirm(`确定要删除 ${jobName} 任务吗?`, '删除', {
     confirmButtonText: 'OK',
@@ -260,6 +295,27 @@ const getJob = async (id) => {
     form.value = data.data
   }
 }
+const concurrentMap = {
+  0: '允许并发',
+  1: '禁止并发',
+}
+const concurrentMaps = [
+  { value: '0', label: '允许并发' },
+  { value: '1', label: '禁止并发' },
+]
+const misfirePolicyMap = {
+  0: '默认策略',
+  1: '激进策略',
+  2: '立即执行',
+  3: '下次执行',
+}
+const misfirePolicyMaps = [
+  { value: '0', label: '默认策略' },
+  { value: '1', label: '激进策略' },
+  { value: '2', label: '立即执行' },
+  { value: '3', label: '下次执行' },
+]
+
 const columns = ref([
   {
     key: 'jobId',
@@ -288,6 +344,23 @@ const columns = ref([
     title: '状态',
     width: 120,
     align: 'center',
+    cellRenderer: ({ rowData }) => (
+      <div class="action-buttons">
+        <el-switch
+          v-model={[rowData.jobStatus, 'modelValue']}
+          class="ml-2"
+          inline-prompt
+          style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+          active-text="启用"
+          inactive-text="禁用"
+          active-value="0"
+          inactive-value="1"
+          beforeChange={async () => {
+            return await setStatus(rowData)
+          }}
+        />
+      </div>
+    ),
   },
   {
     key: 'misfirePolicy',
@@ -295,6 +368,9 @@ const columns = ref([
     title: '错过触发处理策略',
     width: 180,
     align: 'center',
+    cellRenderer: ({ cellData }) => {
+      return misfirePolicyMap[cellData] || cellData
+    },
   },
   {
     key: 'concurrent',
@@ -302,6 +378,9 @@ const columns = ref([
     title: '并发执行策略',
     width: 180,
     align: 'center',
+    cellRenderer: ({ cellData }) => {
+      return concurrentMap[cellData] || cellData
+    },
   },
   {
     key: 'action',
@@ -323,7 +402,7 @@ const columns = ref([
           size="small"
           type="info"
           onClick={() => {
-            handleDelete(rowData)
+            handleLog(rowData)
           }}
         >
           日志

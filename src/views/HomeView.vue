@@ -32,6 +32,7 @@
 .common-layout {
   height: 100vh;
   width: 100vw;
+  overflow: hidden;
 }
 .menu-item {
   padding: 15px 12px;

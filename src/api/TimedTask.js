@@ -32,3 +32,10 @@ export function selectJobList() {
     method: 'get',
   })
 }
+export function updateStatus(data) {
+  return request({
+    url: '/job/status',
+    method: 'put',
+    data: data,
+  })
+}
