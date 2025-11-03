@@ -110,7 +110,7 @@
 </template>
 
 <script>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import TimeUnitEditor from './TimeUnitEditor.vue'
 import SpecialOptionEditor from './SpecialOptionEditor.vue'
 import { valid, nextExecutions } from '../api/cronParser'
@@ -160,6 +160,11 @@ export default {
       { label: '2023-2030', value: '2023-2030' },
     ]
 
+    onMounted(() => {
+      if (cronExpression.value) {
+        localParseExpression()
+      }
+    })
     const getNextExecutions = async (cron, count) => {
       const { data } = await nextExecutions(cron, count)
       if (data.code == 200) {
@@ -376,7 +381,6 @@ export default {
         }
       },
     )
-
     return {
       cronExpression,
       nextExecutionTime,

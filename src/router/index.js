@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import TimedTask from '@/views/TimedTask.vue'
 import TestView from '@/views/TestView.vue'
 import TaskLog from '@/views/TaskLog.vue'
+import TaskAccount from '@/views/TaskAccount.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -26,6 +27,11 @@ const router = createRouter({
       path: '/log/:id',
       name: 'TaskLog',
       component: TaskLog,
+    },
+    {
+      path: '/account/:id',
+      name: 'TaskAccount',
+      component: TaskAccount,
     },
     // {
     //   path: '/about',

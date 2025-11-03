@@ -8,7 +8,13 @@
         <el-input v-model="queryParams.jobName" placeholder="请输入" clearable />
       </el-form-item>
       <el-form-item label="任务状态">
-        <el-input v-model="queryParams.jobStatus" placeholder="请输入" clearable />
+        <el-select v-model="queryParams.jobStatus" placeholder="请选择" style="width: 100px"
+          ><el-option
+            v-for="item in statusMaps"
+            :key="item.key"
+            :label="item.label"
+            :value="item.value"
+        /></el-select>
       </el-form-item>
       <!-- <el-form-item label="输入3">
         <el-input v-model="queryParams.user" placeholder="请输入" clearable />
@@ -125,7 +131,7 @@ const queryParams = ref({
   pageNum: 1,
   pageSize: 10,
   jobName: '',
-  jobStatus: undefined,
+  jobStatus: '0',
 })
 const upload = ref()
 const addFlag = ref(false)
@@ -202,8 +208,7 @@ const handleExceed = (files) => {
   upload.value.handleStart(file)
 }
 const handleUser = (rowData) => {
-  console.log(rowData.id)
-  router.push('/test/' + rowData.jobId)
+  router.push('/account/' + rowData.jobId)
 }
 const handleLog = (rowData) => {
   router.push('/log/' + rowData.jobId)
@@ -236,16 +241,16 @@ const setStatus = async (rowData) => {
 const handleDelete = (rowData) => {
   console.log(rowData)
   const { jobId, jobName } = rowData
-  ElMessageBox.confirm(`确定要删除 ${jobName} 任务吗?`, '删除', {
-    confirmButtonText: 'OK',
-    cancelButtonText: 'Cancel',
+  ElMessageBox.confirm(`确定要卸载 ${jobName} 任务吗?`, '删除', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
     type: 'warning',
   }).then(() => {
-    //    delJob(jobId)
-    ElMessage({
-      message: '功能开发中',
-      type: 'info',
-    })
+    delJob(jobId)
+    // ElMessage({
+    //   message: '功能开发中',
+    //   type: 'info',
+    // })
   })
 }
 const delJob = async (id) => {
@@ -255,9 +260,13 @@ const delJob = async (id) => {
       message: data.msg,
       type: 'success',
     })
-    editFlag.value = false
-    getJobList()
+  } else {
+    ElMessage({
+      message: data.msg,
+      type: 'error',
+    })
   }
+  getJobList()
 }
 const onAdd = () => {
   addFlag.value = true
@@ -273,7 +282,12 @@ const submitUpdate = async () => {
     getJobList()
   }
 }
-const onSubmit = () => {}
+const onSubmit = () => {
+  ElMessage({
+    message: '功能开发中',
+    type: 'info',
+  })
+}
 const handleEdit = (rowData) => {
   editFlag.value = true
   console.log(rowData)
@@ -295,10 +309,16 @@ const getJob = async (id) => {
     form.value = data.data
   }
 }
+const statusMaps = [
+  { value: '0', label: '启用' },
+  { value: '1', label: '禁用' },
+]
+
 const concurrentMap = {
   0: '允许并发',
   1: '禁止并发',
 }
+
 const concurrentMaps = [
   { value: '0', label: '允许并发' },
   { value: '1', label: '禁止并发' },
@@ -366,7 +386,7 @@ const columns = ref([
     key: 'misfirePolicy',
     dataKey: 'misfirePolicy',
     title: '错过触发处理策略',
-    width: 180,
+    width: 130,
     align: 'center',
     cellRenderer: ({ cellData }) => {
       return misfirePolicyMap[cellData] || cellData
@@ -376,7 +396,17 @@ const columns = ref([
     key: 'concurrent',
     dataKey: 'concurrent',
     title: '并发执行策略',
-    width: 180,
+    width: 100,
+    align: 'center',
+    cellRenderer: ({ cellData }) => {
+      return concurrentMap[cellData] || cellData
+    },
+  },
+  {
+    key: 'version',
+    dataKey: 'version',
+    title: '版本',
+    width: 100,
     align: 'center',
     cellRenderer: ({ cellData }) => {
       return concurrentMap[cellData] || cellData
@@ -423,7 +453,7 @@ const columns = ref([
             handleDelete(rowData)
           }}
         >
-          删除
+          卸载
         </el-button>
       </div>
     ),
