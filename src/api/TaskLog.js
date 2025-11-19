@@ -11,3 +11,10 @@ export function selectJobLogList(jobId, pageNum, pageSize) {
     },
   })
 }
+
+export function selectJobLog(jobLogId) {
+  return request({
+    url: `/log/${jobLogId}`,
+    method: 'get',
+  })
+}

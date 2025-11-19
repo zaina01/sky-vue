@@ -26,16 +26,24 @@ export function selectJobById(id) {
     method: 'get',
   })
 }
-export function selectJobList() {
+export function selectJobList(queryParams) {
   return request({
     url: '/job',
     method: 'get',
+    params: queryParams,
   })
 }
 export function updateStatus(data) {
   return request({
     url: '/job/status',
     method: 'put',
+    data: data,
+  })
+}
+export function run(data) {
+  return request({
+    url: '/job/run',
+    method: 'post',
     data: data,
   })
 }

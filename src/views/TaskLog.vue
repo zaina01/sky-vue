@@ -15,7 +15,7 @@
           :title="titleText(value)"
           :name="value.jobLogId"
         >
-          <p>{{ value.jobMessage }}</p>
+          <el-text>{{ value.jobMessage }}</el-text>
         </el-collapse-item>
 
         <!-- 加载状态提示 -->

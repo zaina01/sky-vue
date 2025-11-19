@@ -8,7 +8,11 @@
         <el-input v-model="queryParams.jobName" placeholder="请输入" clearable />
       </el-form-item>
       <el-form-item label="任务状态">
-        <el-select v-model="queryParams.jobStatus" placeholder="请选择" style="width: 100px"
+        <el-select
+          v-model="queryParams.jobStatus"
+          placeholder="请选择"
+          clearable
+          style="width: 100px"
           ><el-option
             v-for="item in statusMaps"
             :key="item.key"
@@ -24,12 +28,32 @@
       </el-form-item>
     </el-form>
     <el-divider />
-    <div class="auto-resizer">
+    <div style="height: 80%">
       <el-auto-resizer>
         <template #default="{ height, width }">
-          <el-table-v2 :columns="columns" :data="dataList" :width="width" :height="height" fixed />
+          <el-table-v2
+            :columns="columns"
+            :data="pagination.data"
+            :width="width"
+            :height="height"
+            fixed
+            v-loading="loading"
+          />
         </template>
       </el-auto-resizer>
+    </div>
+    <div class="pagination-container">
+      <el-pagination
+        v-model:current-page="queryParams.pageNum"
+        v-model:page-size="queryParams.pageSize"
+        :page-sizes="[8, 15, 20, 30]"
+        :small="true"
+        :background="true"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="pagination.total"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
     </div>
     <el-dialog v-model="editFlag" title="修改" width="800" :align-center="true">
       <el-form :model="form" label-width="auto" style="max-width: 600px" class="centered-form">
@@ -105,7 +129,9 @@
         </template>
         <el-button class="ml-3" type="success" @click="submitUpload"> 安装 </el-button>
         <template #tip>
-          <div class="el-upload__tip text-red">提示: 只支持安装jar包</div>
+          <div class="el-upload__tip text-red">
+            提示: 只支持安装jar包。请勿安装不明来源的插件，不明来源的插件可能包含后门或恶意脚本。
+          </div>
         </template>
       </el-upload>
     </el-dialog>
@@ -120,25 +146,44 @@
   </div>
 </template>
 <script setup lang="jsx">
-import { ref, onMounted } from 'vue'
+import { h, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { genFileId, ElMessage, ElMessageBox } from 'element-plus'
 import CronEditor from '../components/CronEditor.vue'
-import { updateJob, deleteJob, selectJobById, selectJobList, updateStatus } from '../api/TimedTask'
+import {
+  updateJob,
+  deleteJob,
+  selectJobById,
+  selectJobList,
+  updateStatus,
+  run,
+} from '../api/TimedTask'
+import { ElTooltip } from 'element-plus'
+
 const cronEditorRef = ref(null)
 const router = useRouter()
 const queryParams = ref({
   pageNum: 1,
-  pageSize: 10,
-  jobName: '',
-  jobStatus: '0',
+  pageSize: 8,
+  jobName: undefined,
+  jobStatus: undefined,
 })
+const loading = ref(true)
+const pagination = ref({ data: [], total: 0 })
 const upload = ref()
 const addFlag = ref(false)
 const editFlag = ref(false)
 const form = ref({})
-const dataList = ref([])
-
+// const dataList = ref([])
+const handleSizeChange = (newSize) => {
+  queryParams.value.pageSize = newSize
+  queryParams.value.pageNum = 1
+  getJobList()
+}
+const handleCurrentChange = (newPage) => {
+  queryParams.value.pageNum = newPage
+  getJobList()
+}
 // const dataList = ref([
 //   {
 //     jobId: 1,
@@ -283,10 +328,11 @@ const submitUpdate = async () => {
   }
 }
 const onSubmit = () => {
-  ElMessage({
-    message: '功能开发中',
-    type: 'info',
-  })
+  // ElMessage({
+  //   message: '功能开发中',
+  //   type: 'info',
+  // })
+  getJobList()
 }
 const handleEdit = (rowData) => {
   editFlag.value = true
@@ -298,9 +344,14 @@ onMounted(() => {
   getJobList()
 })
 const getJobList = async () => {
-  const { data } = await selectJobList()
+  loading.value = true
+  const { data } = await selectJobList(queryParams.value)
   if (data.code == 200) {
-    dataList.value = data.data
+    pagination.value.data = data.data.list
+    pagination.value.total = data.data.total
+    loading.value = false
+  } else {
+    ElMessage.error(data.msg)
   }
 }
 const getJob = async (id) => {
@@ -335,21 +386,62 @@ const misfirePolicyMaps = [
   { value: '2', label: '立即执行' },
   { value: '3', label: '下次执行' },
 ]
-
+const execute = (rowData) => {
+  const { jobName } = rowData
+  ElMessageBox.confirm(`确定要立即运行 ${jobName} 任务吗?`, '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
+    runJob(rowData)
+    // ElMessage({
+    //   message: '功能开发中',
+    //   type: 'info',
+    // })
+  })
+}
+const runJob = async (job) => {
+  const { data } = await run(job)
+  if (data.code == 200) {
+    ElMessage({
+      message: data.msg,
+      type: 'success',
+    })
+  } else {
+    ElMessage({
+      message: data.msg,
+      type: 'error',
+    })
+  }
+}
 const columns = ref([
   {
     key: 'jobId',
     dataKey: 'jobId',
     title: '任务id',
-    width: 80,
+    width: 60,
     align: 'center',
   },
   {
     key: 'jobName',
     dataKey: 'jobName',
     title: '任务名称',
-    width: 150,
+    width: 130,
     align: 'center',
+    cellRenderer: ({ rowData }) => {
+      return h(
+        ElTooltip,
+        {
+          placement: 'top',
+          effect: 'light',
+          content: rowData.remark, // 提示内容
+        },
+        {
+          // default 插槽：触发提示的元素
+          default: () => h('span', { class: 'cell-text' }, rowData.jobName),
+        },
+      )
+    },
   },
   {
     key: 'cronExpression',
@@ -362,7 +454,7 @@ const columns = ref([
     key: 'jobStatus',
     dataKey: 'jobStatus',
     title: '状态',
-    width: 120,
+    width: 80,
     align: 'center',
     cellRenderer: ({ rowData }) => (
       <div class="action-buttons">
@@ -406,22 +498,35 @@ const columns = ref([
     key: 'version',
     dataKey: 'version',
     title: '版本',
+    width: 90,
+    align: 'center',
+  },
+  {
+    key: 'author',
+    dataKey: 'author',
+    title: '作者',
     width: 100,
     align: 'center',
-    cellRenderer: ({ cellData }) => {
-      return concurrentMap[cellData] || cellData
-    },
   },
   {
     key: 'action',
     title: '操作',
-    width: 300,
+    width: 305,
     align: 'center',
     cellRenderer: ({ rowData }) => (
       <div class="action-buttons">
         <el-button
           size="small"
           type="primary"
+          onClick={() => {
+            execute(rowData)
+          }}
+        >
+          运行
+        </el-button>
+        <el-button
+          size="small"
+          type="success"
           onClick={() => {
             handleUser(rowData)
           }}
@@ -461,13 +566,23 @@ const columns = ref([
 ])
 </script>
 <style scoped>
+.text-red {
+  color: red;
+}
 .app-container {
   width: 100%;
-  height: 90%;
+  height: 95%;
+  /* overflow: auto; */
 }
-.auto-resizer {
+/* .auto-resizer {
   width: 100%;
-  height: 90%;
+  max-height: 80%;
+} */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  padding: 10px 0;
 }
 .demo-form-inline {
   display: flex;

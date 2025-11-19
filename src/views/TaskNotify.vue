@@ -2,7 +2,7 @@
   <div class="app-container">
     <el-form :inline="true" :model="queryParams" class="demo-form-inline">
       <el-form-item>
-        <el-button type="primary" @click="onAdd">添加</el-button>
+        <el-button type="primary" @click="onAdd">添加服务</el-button>
       </el-form-item>
       <!-- <el-form-item label="任务名称">
         <el-input v-model="queryParams.jobName" placeholder="请输入" clearable />
@@ -25,15 +25,12 @@
         </template>
       </el-auto-resizer>
     </div> -->
-    <el-table :data="dataList" v-loading="loading" style="width: 100%" highlight-current-row>
-      <el-table-column
-        v-for="(row, index) in columns"
-        :key="index"
-        :prop="row.dataKey"
-        :min-width="row.width"
-        :label="row.title"
-        :align="row.align"
-      />
+    <el-table :data="notifys" v-loading="loading" style="width: 100%" highlight-current-row>
+      <el-table-column prop="id" min-width="80" label="序号" align="center" />
+      <el-table-column prop="notifyName" min-width="80" label="服务名称" align="center" />
+      <el-table-column prop="createTime" min-width="80" label="创建时间" align="center" />
+      <el-table-column prop="updateTime" min-width="80" label="更新时间" align="center" />
+      <el-table-column prop="remark" min-width="80" label="备注" align="center" />
       <el-table-column label="操作" min-width="200" align="center" fixed="right">
         <template #default="scope">
           <el-button size="small" type="warning" @click.stop="handleEdit(scope.row)">
@@ -45,8 +42,32 @@
         </template>
       </el-table-column>
     </el-table>
+    <el-dialog v-model="AddFlag" title="添加推送服务" width="500" :align-center="true">
+      <div class="tags" v-if="serviceList.length !== 0">
+        <el-tag
+          class="tags-item"
+          type="primary"
+          effect="dark"
+          round
+          v-for="(value, index) in serviceList"
+          :key="index"
+          @click="submitAdd(value)"
+          >{{ value }}</el-tag
+        >
+      </div>
+      <div class="tags" v-else>
+        <span>无可用服务</span>
+      </div>
+    </el-dialog>
     <el-dialog v-model="editFlag" :title="dialogTitle" width="800" :align-center="true">
-      <el-form :model="form" label-width="auto" style="max-width: 600px" class="centered-form">
+      <el-form
+        :model="form"
+        label-width="auto"
+        :rules="dynamicRules"
+        ref="dynamicFormRef"
+        style="max-width: 600px"
+        class="centered-form"
+      >
         <el-row
           :gutter="24"
           justify="space-between"
@@ -54,7 +75,7 @@
           :key="index"
         >
           <el-col :span="12" v-for="col in row" :key="col.key">
-            <el-form-item :label="col.title">
+            <el-form-item :label="col.title" :prop="col.dataKey">
               <el-input v-model="form[col.dataKey]" />
             </el-form-item>
           </el-col>
@@ -74,31 +95,32 @@
 
 <script setup lang="jsx">
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  getAccountColumn,
-  getAccounts,
-  getAccount,
-  addAccount,
-  deleteAccount,
-  updateAccount,
-} from '../api/TaskAccount'
+  getServices,
+  getNotifyList,
+  getNotifyData,
+  addNotify,
+  deleteNotif,
+  updateNotifyData,
+  getNotifyDataColumn,
+} from '../api/TaskNotify'
 
 // 响应式数据
-const route = useRoute()
-const jobId = ref(route.params.id)
 const columns = ref([])
-const dataList = ref([])
+const notifys = ref([])
 const primaryKey = ref('')
 const loading = ref(true)
 const dialogTitle = ref('')
+const AddFlag = ref(false)
 const editFlag = ref(false)
-const formConfigEdit = ref([])
-const formConfigAdd = ref([])
 const formConfig = ref([])
+const dynamicRules = ref({})
+const dynamicFormRef = ref()
 const queryParams = ref({})
 const form = ref({})
+const editId = ref(undefined)
+const serviceList = ref([])
 const formConfigbuild = (columns) => {
   columns = columns.filter((item) => item.key !== 'action')
   console.log(columns)
@@ -121,136 +143,116 @@ const formConfigbuild = (columns) => {
   return list
 }
 
-const getColumns = async () => {
-  const { data } = await getAccountColumn(jobId.value)
+const getColumns = async (notifyId) => {
+  const { data } = await getNotifyDataColumn(notifyId)
   if (data.code == 200) {
     columns.value = data.data
-    primaryKey.value = columns.value.find((column) => column.primaryKey).dataKey
-    console.log('primaryKey: ' + primaryKey.value)
-    formConfigEdit.value = formConfigbuild(columns.value)
-    // for (let index = 0; index < formConfigEdit.value.length; index++) {
-    //   const item = formConfigEdit.value[index].filter((col) => !col.primaryKey)
-    //   if (item.length > 0) {
-    //     formConfigAdd.value.push(item)
-    //   }
-    // }
-    formConfigAdd.value = formConfigbuild(columns.value.filter((item) => !item.primaryKey))
-    console.log(formConfigAdd.value)
-    // columns.value.push({
-    //   key: 'action',
-    //   title: '操作',
-    //   width: 300,
-    //   align: 'center',
-    //   cellRenderer: ({ rowData }) => (
-    //     <div class="action-buttons">
-    //       <el-button
-    //         size="small"
-    //         type="warning"
-    //         onClick={() => {
-    //           handleEdit(rowData)
-    //         }}
-    //       >
-    //         修改
-    //       </el-button>
-    //       <el-button
-    //         size="small"
-    //         type="danger"
-    //         onClick={() => {
-    //           handleDelete(rowData)
-    //         }}
-    //       >
-    //         删除
-    //       </el-button>
-    //     </div>
-    //   ),
-    // })
+    formConfig.value = formConfigbuild(columns.value)
+    columns.value.forEach((field) => {
+      form.value[field.dataKey] = form.value[field.dataKey] || ''
+      dynamicRules.value[field.dataKey] = [] // 同上
+      if (field.required) {
+        dynamicRules.value[field.dataKey].push({
+          required: true,
+          message: `请输入${field.title}`,
+          trigger: 'blur',
+        })
+      }
+    })
   }
 }
 // 模拟获取列配置API
 const submitUpdate = () => {
-  if (
-    Object.values(form.value).every(
-      (value) => value === null || value === undefined || value === '',
-    )
-  ) {
-    ElMessage({
-      message: '请填写表单',
-      type: 'error',
-    })
-    return
-  }
-  if (dialogTitle.value === '添加') {
-    accountAdd()
-  } else {
-    putAccount()
-  }
+  if (!dynamicFormRef.value) return
+
+  dynamicFormRef.value.validate((valid) => {
+    if (valid) {
+      // 验证通过，可以提交数据
+      console.log('表单数据:', form.value)
+      putNotifyData()
+      // 此处添加您的提交逻辑，例如调用API
+      // yourApiSubmit(formModel)
+    } else {
+      console.log('表单验证失败，请检查输入')
+      return false
+    }
+  })
 }
 // 模拟获取表格数据API
-const getDataList = async () => {
+const getNotifys = async () => {
   loading.value = true
-  const { data } = await getAccounts(jobId.value)
+  const { data } = await getNotifyList()
   if (data.code == 200) {
-    dataList.value = data.data
+    notifys.value = data.data
     loading.value = false
   } else {
     ElMessage.error(data.msg)
   }
 }
-const delAccount = async (id) => {
-  const { data } = await deleteAccount(jobId.value, id)
+const submitAdd = (val) => {
+  notifyAdd(val)
+}
+const delNotif = async (id) => {
+  const { data } = await deleteNotif(id)
   if (data.code == 200) {
     ElMessage({
       message: data.msg,
       type: 'success',
     })
-    getDataList()
+    getNotifys()
   }
 }
 const handleEdit = (rowData) => {
-  const id = rowData[primaryKey.value]
-  selectAccount(id)
+  const id = rowData.id
+
+  getColumns(id)
+  selectNotifyData(id)
   editFlag.value = true
   dialogTitle.value = '修改'
-  formConfig.value = formConfigEdit.value
+  editId.value = id
 }
-const selectAccount = async (id) => {
-  const { data } = await getAccount(jobId.value, id)
+const selectNotifyData = async (id) => {
+  const { data } = await getNotifyData(id)
   if (data.code == 200) {
     form.value = data.data
   }
 }
 const handleDelete = (rowData) => {
-  console.log(rowData)
-  const id = rowData[primaryKey.value]
+  const id = rowData.id
   ElMessageBox.confirm(`确定要删除${primaryKey.value} 为 ${id} 的值吗?`, '删除', {
-    confirmButtonText: 'OK',
-    cancelButtonText: 'Cancel',
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
     type: 'warning',
   }).then(() => {
-    delAccount(id)
+    delNotif(id)
     // ElMessage({
     //   message: '功能开发中',
     //   type: 'info',
     // })
   })
 }
-
 const onAdd = () => {
-  form.value = {}
-  formConfig.value = formConfigEdit.value
-  editFlag.value = true
-  dialogTitle.value = '添加'
+  serviceList.value = []
+  AddFlag.value = true
+  getServiceList()
 }
-
-const accountAdd = async () => {
-  const { data } = await addAccount(jobId.value, form.value)
+const getServiceList = async () => {
+  const { data } = await getServices()
+  if (data.code == 200) {
+    serviceList.value = data.data
+  } else {
+    ElMessage.error(data.msg)
+  }
+}
+const notifyAdd = async (val) => {
+  const { data } = await addNotify(val)
   if (data.code == 200) {
     ElMessage({
       message: data.msg,
       type: 'success',
     })
-    editFlag.value = false
-    getDataList()
+    AddFlag.value = false
+    getNotifys()
   } else {
     ElMessage({
       message: data.msg,
@@ -258,15 +260,15 @@ const accountAdd = async () => {
     })
   }
 }
-const putAccount = async () => {
-  const { data } = await updateAccount(jobId.value, form.value)
+const putNotifyData = async () => {
+  const { data } = await updateNotifyData(editId.value, form.value)
   if (data.code == 200) {
     ElMessage({
       message: data.msg,
       type: 'success',
     })
     editFlag.value = false
-    getDataList()
+    getNotifys()
   } else {
     ElMessage({
       message: data.msg,
@@ -282,8 +284,7 @@ const putAccount = async () => {
 // }
 // 组件挂载时加载数据
 onMounted(() => {
-  getColumns()
-  getDataList()
+  getNotifys()
 })
 </script>
 
@@ -313,5 +314,34 @@ onMounted(() => {
 .centered-form {
   margin: 0 auto;
   padding: 10px;
+}
+.tags {
+  /* display: flex;
+  justify-content: space-between; */
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
+  justify-content: space-evenly; /* 整个网格在容器内水平均匀分布 */
+  gap: 20px;
+}
+.tags-item {
+  max-width: 150px; /* 设置你期望的最大宽度 */
+  box-sizing: border-box; /* 可选，但推荐使用 */
+}
+.tags-item {
+  cursor: pointer; /* 鼠标悬停时显示手型指针 */
+  transition: all 0.3s ease; /* 添加平滑过渡效果 */
+}
+
+/* 悬停状态样式 */
+.tags-item:hover {
+  transform: translateY(-2px); /* 轻微上浮效果 */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* 添加阴影提升立体感 */
+  opacity: 0.9; /* 轻微透明度变化 */
+}
+
+/* 或者使用背景色变化 */
+.tags-item:hover {
+  background-color: #409eff !important; /* 悬停时加深背景色 */
+  border-color: #409eff !important;
 }
 </style>
