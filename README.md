@@ -1,6 +1,6 @@
 # sky-vue
 
-后端项目sky https://gitee.com/lm12306/sky.git 配套前端
+后端项目sky https://gitee.com/lm12306/sky 或 https://github.com/zaina01/sky 配套前端
 
 ## Project Setup
 
