@@ -28,8 +28,58 @@
     <el-table :data="notifys" v-loading="loading" style="width: 100%" highlight-current-row>
       <el-table-column prop="id" min-width="80" label="序号" align="center" />
       <el-table-column prop="notifyName" min-width="80" label="服务名称" align="center" />
-      <el-table-column prop="createTime" min-width="80" label="创建时间" align="center" />
-      <el-table-column prop="updateTime" min-width="80" label="更新时间" align="center" />
+      <el-table-column prop="createTime" min-width="150" label="创建时间" align="center">
+        <template #default="scope">
+          {{ formatTime(scope.row.createTime) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="updateTime" min-width="150" label="更新时间" align="center">
+        <template #default="scope">
+          {{ formatTime(scope.row.updateTime) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="status" min-width="80" label="状态" align="center">
+        <template #default="scope">
+          <el-switch
+            v-if="scope.row.status !== '0'"
+            v-model="scope.row.status"
+            class="ml-2"
+            inline-prompt
+            style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+            active-text="启用"
+            inactive-text="禁用"
+            active-value="1"
+            inactive-value="2"
+            :before-change="
+              async () => {
+                return await setStatus(scope.row)
+              }
+            "
+          >
+          </el-switch>
+          <el-popover
+            v-else
+            title="提示"
+            content="需要点击修改，配置必填项后才可启用。"
+            placement="top"
+          >
+            <template #reference>
+              <el-switch
+                v-model="scope.row.status"
+                disabled
+                class="ml-2"
+                inline-prompt
+                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                active-text="启用"
+                inactive-text="未配置"
+                active-value="1"
+                inactive-value="0"
+              >
+              </el-switch>
+            </template>
+          </el-popover>
+        </template>
+      </el-table-column>
       <el-table-column prop="remark" min-width="80" label="备注" align="center" />
       <el-table-column label="操作" min-width="200" align="center" fixed="right">
         <template #default="scope">
@@ -104,6 +154,7 @@ import {
   deleteNotif,
   updateNotifyData,
   getNotifyDataColumn,
+  updateStatus,
 } from '../api/TaskNotify'
 
 // 响应式数据
@@ -111,6 +162,7 @@ const columns = ref([])
 const notifys = ref([])
 const primaryKey = ref('')
 const loading = ref(true)
+const switchLoading = ref(true)
 const dialogTitle = ref('')
 const AddFlag = ref(false)
 const editFlag = ref(false)
@@ -142,7 +194,33 @@ const formConfigbuild = (columns) => {
   console.log(list)
   return list
 }
-
+const setStatus = async (rowData) => {
+  switchLoading.value = true
+  console.log('setStatus' + rowData)
+  const { notifyName } = rowData
+  await ElMessageBox.confirm(`确定要变更 ${notifyName} 任务状态吗?`, '状态变更', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  })
+  const { data } = await updateStatus(rowData.id)
+  if (data.code == 200) {
+    ElMessage({
+      message: data.msg,
+      type: 'success',
+    })
+    console.log('success')
+    switchLoading.value = false
+    return true
+  } else {
+    ElMessage({
+      message: data.msg,
+      type: 'error',
+    })
+  }
+  switchLoading.value = false
+  return false
+}
 const getColumns = async (notifyId) => {
   const { data } = await getNotifyDataColumn(notifyId)
   if (data.code == 200) {
@@ -208,7 +286,7 @@ const handleEdit = (rowData) => {
   getColumns(id)
   selectNotifyData(id)
   editFlag.value = true
-  dialogTitle.value = '修改'
+  dialogTitle.value = rowData.notifyName + '修改'
   editId.value = id
 }
 const selectNotifyData = async (id) => {
@@ -219,7 +297,8 @@ const selectNotifyData = async (id) => {
 }
 const handleDelete = (rowData) => {
   const id = rowData.id
-  ElMessageBox.confirm(`确定要删除${primaryKey.value} 为 ${id} 的值吗?`, '删除', {
+  const notifyName = rowData.notifyName
+  ElMessageBox.confirm(`确定要删除${notifyName}推送服务吗?`, '删除', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
@@ -240,6 +319,22 @@ const getServiceList = async () => {
   const { data } = await getServices()
   if (data.code == 200) {
     serviceList.value = data.data
+    // serviceList.value = [
+    //   // 'PushPlus',
+    //   // 'PushPlus',
+    //   // 'PushPlus',
+    //   // 'PushPlus',
+    //   // 'PushPlus',
+    //   // 'PushPlus',
+    //   // 'PushPlus',
+    //   // 'PushPlus',
+    //   // 'PushPlus',
+    //   // 'PushPlus',
+    //   // 'PushPlus',
+    //   // 'PushPlus',
+    //   // 'PushPlus',
+    //   // 'PushPlus',
+    // ]
   } else {
     ElMessage.error(data.msg)
   }
@@ -275,6 +370,21 @@ const putNotifyData = async () => {
       type: 'error',
     })
   }
+}
+
+// 时间格式化方法
+const formatTime = (timeString) => {
+  if (!timeString) return ''
+
+  const date = new Date(timeString)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
 }
 // const onSubmit = () => {
 //   ElMessage({
@@ -319,12 +429,12 @@ onMounted(() => {
   /* display: flex;
   justify-content: space-between; */
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(50px, 1fr));
-  justify-content: space-evenly; /* 整个网格在容器内水平均匀分布 */
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  justify-content: center; /* 整个网格在容器内水平均匀分布 */
   gap: 20px;
 }
 .tags-item {
-  max-width: 150px; /* 设置你期望的最大宽度 */
+  max-width: 100px; /* 设置你期望的最大宽度 */
   box-sizing: border-box; /* 可选，但推荐使用 */
 }
 .tags-item {

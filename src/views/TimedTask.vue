@@ -259,7 +259,7 @@ const handleLog = (rowData) => {
   router.push('/log/' + rowData.jobId)
 }
 const setStatus = async (rowData) => {
-  console.log(rowData)
+  console.log('1111111' + rowData)
   const { jobName } = rowData
   await ElMessageBox.confirm(`确定要变更 ${jobName} 任务状态吗?`, '状态变更', {
     confirmButtonText: '确定',

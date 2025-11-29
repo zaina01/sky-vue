@@ -46,3 +46,10 @@ export function getNotifyDataColumn(notifyId) {
     method: 'get',
   })
 }
+
+export function updateStatus(notifyId) {
+  return request({
+    url: `/notify/status/${notifyId}`,
+    method: 'put',
+  })
+}
