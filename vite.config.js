@@ -22,6 +22,18 @@ export default defineConfig({
       resolvers: [ElementPlusResolver()],
     }),
   ],
+  server: {
+    proxy: {
+      // 代理所有以 /api 开头的请求
+      '/api': {
+        target: 'http://localhost:8080', // 你的Spring Boot后端地址
+        changeOrigin: true, // 修改请求头中的Origin为目标URL，模拟同源
+        // rewrite: (path) => path.replace(/^\/api/, '/your-context-path') // 可选：路径重写
+        // 如果你的 context-path 是 /api, 则不需要 rewrite
+        // 如果后端没有额外的路径前缀，重写规则可以置空：rewrite: (path) => path.replace(/^\/api/, '')
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

@@ -160,7 +160,7 @@ import {
 // 响应式数据
 const columns = ref([])
 const notifys = ref([])
-const primaryKey = ref('')
+// const primaryKey = ref('')
 const loading = ref(true)
 const switchLoading = ref(true)
 const dialogTitle = ref('')
@@ -203,10 +203,10 @@ const setStatus = async (rowData) => {
     cancelButtonText: '取消',
     type: 'warning',
   })
-  const { data } = await updateStatus(rowData.id)
-  if (data.code == 200) {
+  const { code, msg } = await updateStatus(rowData.id)
+  if (code == 200) {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'success',
     })
     console.log('success')
@@ -214,7 +214,7 @@ const setStatus = async (rowData) => {
     return true
   } else {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'error',
     })
   }
@@ -222,9 +222,9 @@ const setStatus = async (rowData) => {
   return false
 }
 const getColumns = async (notifyId) => {
-  const { data } = await getNotifyDataColumn(notifyId)
-  if (data.code == 200) {
-    columns.value = data.data
+  const { code, msg, data } = await getNotifyDataColumn(notifyId)
+  if (code == 200) {
+    columns.value = data
     formConfig.value = formConfigbuild(columns.value)
     columns.value.forEach((field) => {
       form.value[field.dataKey] = form.value[field.dataKey] || ''
@@ -237,6 +237,8 @@ const getColumns = async (notifyId) => {
         })
       }
     })
+  } else {
+    ElMessage.error(msg)
   }
 }
 // 模拟获取列配置API
@@ -259,25 +261,27 @@ const submitUpdate = () => {
 // 模拟获取表格数据API
 const getNotifys = async () => {
   loading.value = true
-  const { data } = await getNotifyList()
-  if (data.code == 200) {
-    notifys.value = data.data
+  const { code, msg, data } = await getNotifyList()
+  if (code == 200) {
+    notifys.value = data
     loading.value = false
   } else {
-    ElMessage.error(data.msg)
+    ElMessage.error(msg)
   }
 }
 const submitAdd = (val) => {
   notifyAdd(val)
 }
 const delNotif = async (id) => {
-  const { data } = await deleteNotif(id)
-  if (data.code == 200) {
+  const { code, msg } = await deleteNotif(id)
+  if (code == 200) {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'success',
     })
     getNotifys()
+  } else {
+    ElMessage.error(msg)
   }
 }
 const handleEdit = (rowData) => {
@@ -290,9 +294,11 @@ const handleEdit = (rowData) => {
   editId.value = id
 }
 const selectNotifyData = async (id) => {
-  const { data } = await getNotifyData(id)
-  if (data.code == 200) {
-    form.value = data.data
+  const { code, msg, data } = await getNotifyData(id)
+  if (code == 200) {
+    form.value = data
+  } else {
+    ElMessage.error(msg)
   }
 }
 const handleDelete = (rowData) => {
@@ -316,9 +322,9 @@ const onAdd = () => {
   getServiceList()
 }
 const getServiceList = async () => {
-  const { data } = await getServices()
-  if (data.code == 200) {
-    serviceList.value = data.data
+  const { code, msg, data } = await getServices()
+  if (code == 200) {
+    serviceList.value = data
     // serviceList.value = [
     //   // 'PushPlus',
     //   // 'PushPlus',
@@ -336,37 +342,37 @@ const getServiceList = async () => {
     //   // 'PushPlus',
     // ]
   } else {
-    ElMessage.error(data.msg)
+    ElMessage.error(msg)
   }
 }
 const notifyAdd = async (val) => {
-  const { data } = await addNotify(val)
-  if (data.code == 200) {
+  const { code, msg } = await addNotify(val)
+  if (code == 200) {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'success',
     })
     AddFlag.value = false
     getNotifys()
   } else {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'error',
     })
   }
 }
 const putNotifyData = async () => {
-  const { data } = await updateNotifyData(editId.value, form.value)
-  if (data.code == 200) {
+  const { code, msg } = await updateNotifyData(editId.value, form.value)
+  if (code == 200) {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'success',
     })
     editFlag.value = false
     getNotifys()
   } else {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'error',
     })
   }

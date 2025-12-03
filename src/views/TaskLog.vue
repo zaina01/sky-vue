@@ -58,10 +58,12 @@ const getData = async () => {
 
   isLoading.value = true
   try {
-    const { data } = await selectJobLogList(jobId.value, pageNum.value, pageSize.value)
-    if (data.code === 200) {
-      logData.value.push(...data.data.list)
-      pages.value = data.data.pages
+    const { code, msg, data } = await selectJobLogList(jobId.value, pageNum.value, pageSize.value)
+    if (code === 200) {
+      logData.value.push(...data.list)
+      pages.value = data.pages
+    } else {
+      ElMessage.error(msg)
     }
   } catch (error) {
     ElMessage.error('数据加载失败')

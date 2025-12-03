@@ -83,11 +83,11 @@ const getJobLog = async (id) => {
     console.log(id)
     return
   }
-  const { data } = await selectJobLog(id)
-  if (data.code == 200) {
-    jobLogData.value = data.data
+  const { code, msg, data } = await selectJobLog(id)
+  if (code == 200) {
+    jobLogData.value = data
   } else {
-    ElMessage.error(data.msg)
+    ElMessage.error(msg)
   }
 }
 // 状态标签计算

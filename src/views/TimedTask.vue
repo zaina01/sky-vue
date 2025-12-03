@@ -116,7 +116,8 @@
       <el-upload
         ref="upload"
         class="upload-demo"
-        action="http://localhost:8080/job/install"
+        :action="uploadUrl"
+        :headers="uploadHeaders"
         :limit="1"
         accept=".jar"
         :on-exceed="handleExceed"
@@ -146,7 +147,7 @@
   </div>
 </template>
 <script setup lang="jsx">
-import { h, ref, onMounted } from 'vue'
+import { h, ref, onMounted, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { genFileId, ElMessage, ElMessageBox } from 'element-plus'
 import CronEditor from '../components/CronEditor.vue'
@@ -180,6 +181,13 @@ const handleSizeChange = (newSize) => {
   queryParams.value.pageNum = 1
   getJobList()
 }
+const uploadUrl = computed(() => {
+  const baseUrl = import.meta.env.VITE_APP_API_BASE_URL
+  return `${baseUrl}/job/install`
+})
+const uploadHeaders = reactive({
+  Authorization: localStorage.getItem('userToken') || sessionStorage.getItem('userToken'), // 或从 store 获取
+})
 const handleCurrentChange = (newPage) => {
   queryParams.value.pageNum = newPage
   getJobList()
@@ -267,17 +275,17 @@ const setStatus = async (rowData) => {
     type: 'warning',
   })
   //    delJob(jobId)
-  const { data } = await updateStatus(rowData)
-  if (data.code == 200) {
+  const { code, msg } = await updateStatus(rowData)
+  if (code == 200) {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'success',
     })
     console.log('success')
     return true
   } else {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'error',
     })
   }
@@ -299,15 +307,15 @@ const handleDelete = (rowData) => {
   })
 }
 const delJob = async (id) => {
-  const { data } = await deleteJob(id)
-  if (data.code == 200) {
+  const { code, msg } = await deleteJob(id)
+  if (code == 200) {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'success',
     })
   } else {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'error',
     })
   }
@@ -317,10 +325,10 @@ const onAdd = () => {
   addFlag.value = true
 }
 const submitUpdate = async () => {
-  const { data } = await updateJob(form.value)
-  if (data.code == 200) {
+  const { code, msg } = await updateJob(form.value)
+  if (code == 200) {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'success',
     })
     editFlag.value = false
@@ -345,19 +353,22 @@ onMounted(() => {
 })
 const getJobList = async () => {
   loading.value = true
-  const { data } = await selectJobList(queryParams.value)
-  if (data.code == 200) {
-    pagination.value.data = data.data.list
-    pagination.value.total = data.data.total
+  const { code, msg, data } = await selectJobList(queryParams.value)
+  if (code == 200) {
+    pagination.value.data = data.list
+    pagination.value.total = data.total
     loading.value = false
   } else {
-    ElMessage.error(data.msg)
+    ElMessage.error(msg)
   }
 }
 const getJob = async (id) => {
-  const { data } = await selectJobById(id)
-  if (data.code == 200) {
-    form.value = data.data
+  const { code, msg, data } = await selectJobById(id)
+  if (code == 200) {
+    form.value = data
+    // ElMessage.success(msg)
+  } else {
+    ElMessage.error(msg)
   }
 }
 const statusMaps = [
@@ -401,15 +412,15 @@ const execute = (rowData) => {
   })
 }
 const runJob = async (job) => {
-  const { data } = await run(job)
-  if (data.code == 200) {
+  const { code, msg } = await run(job)
+  if (code == 200) {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'success',
     })
   } else {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'error',
     })
   }

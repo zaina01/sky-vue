@@ -122,9 +122,9 @@ const formConfigbuild = (columns) => {
 }
 
 const getColumns = async () => {
-  const { data } = await getAccountColumn(jobId.value)
-  if (data.code == 200) {
-    columns.value = data.data
+  const { code, msg, data } = await getAccountColumn(jobId.value)
+  if (code == 200) {
+    columns.value = data
     primaryKey.value = columns.value.find((column) => column.primaryKey).dataKey
     console.log('primaryKey: ' + primaryKey.value)
     formConfigEdit.value = formConfigbuild(columns.value)
@@ -164,6 +164,8 @@ const getColumns = async () => {
     //     </div>
     //   ),
     // })
+  } else {
+    ElMessage.error(msg)
   }
 }
 // 模拟获取列配置API
@@ -188,22 +190,24 @@ const submitUpdate = () => {
 // 模拟获取表格数据API
 const getDataList = async () => {
   loading.value = true
-  const { data } = await getAccounts(jobId.value)
-  if (data.code == 200) {
-    dataList.value = data.data
+  const { code, msg, data } = await getAccounts(jobId.value)
+  if (code == 200) {
+    dataList.value = data
     loading.value = false
   } else {
-    ElMessage.error(data.msg)
+    ElMessage.error(msg)
   }
 }
 const delAccount = async (id) => {
-  const { data } = await deleteAccount(jobId.value, id)
-  if (data.code == 200) {
+  const { code, msg } = await deleteAccount(jobId.value, id)
+  if (code == 200) {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'success',
     })
     getDataList()
+  } else {
+    ElMessage.error(msg)
   }
 }
 const handleEdit = (rowData) => {
@@ -214,9 +218,11 @@ const handleEdit = (rowData) => {
   formConfig.value = formConfigEdit.value
 }
 const selectAccount = async (id) => {
-  const { data } = await getAccount(jobId.value, id)
-  if (data.code == 200) {
-    form.value = data.data
+  const { code, msg, data } = await getAccount(jobId.value, id)
+  if (code == 200) {
+    form.value = data
+  } else {
+    ElMessage.error(msg)
   }
 }
 const handleDelete = (rowData) => {
@@ -243,33 +249,33 @@ const onAdd = () => {
 }
 
 const accountAdd = async () => {
-  const { data } = await addAccount(jobId.value, form.value)
-  if (data.code == 200) {
+  const { code, msg } = await addAccount(jobId.value, form.value)
+  if (code == 200) {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'success',
     })
     editFlag.value = false
     getDataList()
   } else {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'error',
     })
   }
 }
 const putAccount = async () => {
-  const { data } = await updateAccount(jobId.value, form.value)
-  if (data.code == 200) {
+  const { code, msg } = await updateAccount(jobId.value, form.value)
+  if (code == 200) {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'success',
     })
     editFlag.value = false
     getDataList()
   } else {
     ElMessage({
-      message: data.msg,
+      message: msg,
       type: 'error',
     })
   }

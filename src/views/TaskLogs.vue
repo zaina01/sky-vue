@@ -134,14 +134,16 @@ const fetchLogs = async () => {
   loading.value = true
   try {
     // 模拟API调用
-    const { data } = await selectJobLogList(
+    const { code, msg, data } = await selectJobLogList(
       jobId.value,
       pagination.currentPage,
       pagination.pageSize,
     )
-    if (data.code == 200) {
-      logList.value = data.data.list
-      pagination.total = data.data.total
+    if (code == 200) {
+      logList.value = data.list
+      pagination.total = data.total
+    } else {
+      ElMessage.error(msg)
     }
     // 在实际应用中，这里应该是API调用
     // const response = await axios.get('/api/job-logs', {

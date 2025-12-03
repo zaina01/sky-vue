@@ -166,26 +166,26 @@ export default {
       }
     })
     const getNextExecutions = async (cron, count) => {
-      const { data } = await nextExecutions(cron, count)
-      if (data.code == 200) {
-        console.log(data.data)
-        const times = data.data
+      const { code, msg, data } = await nextExecutions(cron, count)
+      if (code == 200) {
+        console.log(data)
+        const times = data
         return times
       } else {
-        console.log(data.msg)
+        console.log(msg)
         ElMessage({
-          message: data.msg,
+          message: msg,
           type: 'error',
         })
       }
     }
     const isValidCron = async (cron) => {
-      const { data } = await valid(cron)
-      if (data.code == 200) {
+      const { code, msg } = await valid(cron)
+      if (code == 200) {
         return true
       } else {
         ElMessage({
-          message: data.msg,
+          message: msg,
           type: 'error',
         })
         return false

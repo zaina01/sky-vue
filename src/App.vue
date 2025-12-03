@@ -1,12 +1,16 @@
-<script setup>
-import HomeView from './views/HomeView.vue'
-</script>
+<script setup></script>
 
 <template>
-  <HomeView></HomeView>
+  <div class="app">
+    <router-view></router-view>
+  </div>
 </template>
 
 <style scoped>
+.app {
+  width: 100vw;
+  height: 100vh;
+}
 /* header {
   line-height: 1.5;
   max-height: 100vh;
