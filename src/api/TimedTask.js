@@ -1,12 +1,12 @@
 import request from '../utils/request'
 
-export function addJob(data) {
-  return request({
-    url: '/job',
-    method: 'post',
-    data: data,
-  })
-}
+// export function addJob(data) {
+//   return request({
+//     url: '/job',
+//     method: 'post',
+//     data: data,
+//   })
+// }
 export function updateJob(data) {
   return request({
     url: '/job',

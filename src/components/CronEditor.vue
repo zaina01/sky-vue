@@ -409,31 +409,35 @@ export default {
 <style scoped>
 .cron-editor {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  width: 100%;
   max-width: 1000px;
   margin: 0 auto;
-  padding: 0 20px 20px;
+  padding: 0 15px 20px;
   background: white;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  height: 70vh;
-  overflow: auto;
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .cron-input-section {
-  margin-bottom: 25px;
-  padding: 30px 20px 20px;
+  margin-bottom: 20px;
+  padding: 20px;
   background: #f9fbfd;
   border-radius: 6px;
   border: 1px solid #eaeef2;
   position: sticky;
-  top: 0px;
+  top: 0;
   z-index: 1000;
+  backdrop-filter: blur(10px);
 }
 
 .input-group {
   display: flex;
   gap: 10px;
   margin-bottom: 15px;
+  align-items: center;
 }
 
 .cron-input {
@@ -443,6 +447,7 @@ export default {
   border-radius: 4px;
   font-size: 16px;
   transition: border-color 0.3s;
+  min-height: 40px;
 }
 
 .cron-input:focus {
@@ -451,64 +456,38 @@ export default {
   box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
 }
 
-.btn {
-  padding: 12px 20px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.3s ease;
-}
-
-.btn-primary {
-  background-color: #1890ff;
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #40a9ff;
-}
-
-.btn-default {
-  background-color: #f5f5f5;
-  color: #666;
-  border: 1px solid #dcdfe6;
-}
-
-.btn-default:hover {
-  background-color: #e6f7ff;
-  border-color: #91d5ff;
+.rigin-button {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .editor-section {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 25px;
-}
-
-@media (max-width: 768px) {
-  .editor-section {
-    grid-template-columns: 1fr;
-  }
+  gap: 20px;
+  flex: 1;
+  overflow-y: auto;
+  align-content: start;
 }
 
 .preview-section {
-  margin-top: 25px;
+  margin-top: 20px;
   padding: 20px;
   background: #f0f5ff;
   border-radius: 6px;
   border: 1px solid #adc6ff;
+  flex-shrink: 0;
 }
 
 .preview-section h3 {
   margin-bottom: 15px;
   color: #096dd9;
+  font-size: 1.2em;
 }
 
 .next-times {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
+  gap: 12px;
   margin-top: 15px;
 }
 
@@ -518,10 +497,135 @@ export default {
   border-radius: 4px;
   border: 1px solid #adc6ff;
   text-align: center;
+  word-break: break-word;
 }
-.rigin-button {
-  display: flex;
-  justify-content: center; /* 水平居中 */
-  align-items: center; /* 垂直居中 */
+
+/* 响应式设计 - 移动端优先 */
+/* 小屏手机 (≤576px) */
+@media (max-width: 576px) {
+  .cron-editor {
+    padding: 0 10px 15px;
+    min-height: 80vh;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .cron-input-section {
+    padding: 15px 12px 12px;
+    margin-bottom: 15px;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+
+  .input-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .cron-input {
+    width: 100%;
+    font-size: 14px;
+  }
+
+  .rigin-button {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .rigin-button .el-button {
+    flex: 1;
+  }
+
+  .editor-section {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .next-times {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-section {
+    margin-top: 15px;
+    padding: 15px;
+  }
+
+  .preview-section h3 {
+    font-size: 1.1em;
+  }
+}
+
+/* 平板端 (577px-768px) */
+@media (min-width: 577px) and (max-width: 768px) {
+  .editor-section {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .next-times {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* 桌面端 (≥769px) */
+@media (min-width: 769px) {
+  .editor-section {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .next-times {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* 大桌面端 (≥1200px) */
+@media (min-width: 1200px) {
+  .next-times {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* 触摸设备优化 */
+@media (pointer: coarse) {
+  .cron-input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .el-button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* 横屏移动设备优化 */
+@media (max-height: 500px) and (orientation: landscape) {
+  .cron-editor {
+    min-height: 100vh;
+  }
+
+  .cron-input-section {
+    position: static;
+  }
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  .cron-input {
+    border-width: 2px;
+  }
+
+  .time-item {
+    border-width: 2px;
+  }
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .cron-input,
+  .el-button {
+    transition: none;
+  }
 }
 </style>

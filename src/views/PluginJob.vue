@@ -4,10 +4,10 @@
     <el-form :inline="true" :model="queryParams" class="demo-form-inline responsive-form">
       <el-row :gutter="16" class="form-row" justify="space-between">
         <!-- 左侧：添加按钮和搜索条件 -->
-        <el-col :xs="24" :sm="18" :md="18" :lg="18">
-          <el-row :gutter="16">
+        <el-col :xs="24" :sm="24" :md="24" :lg="24">
+          <el-row :gutter="24">
             <!-- 操作按钮组 -->
-            <el-col :xs="6" :sm="4" :md="4" :lg="5">
+            <el-col :xs="6" :sm="3" :md="3" :lg="2">
               <el-form-item>
                 <el-button type="primary" @click="onAdd" :size="inputSize" class="action-button">
                   <el-icon><Plus /></el-icon>
@@ -15,9 +15,16 @@
                 </el-button>
               </el-form-item>
             </el-col>
-
+            <el-col :xs="6" :sm="3" :md="3" :lg="3">
+              <el-form-item>
+                <el-button type="warning" @click="onUpdate" :size="inputSize" class="action-button">
+                  <el-icon><Link /></el-icon>
+                  <span v-if="!isMobile">更新</span>
+                </el-button>
+              </el-form-item>
+            </el-col>
             <!-- 搜索条件 -->
-            <el-col :xs="6" :sm="10" :md="8" :lg="9">
+            <el-col :xs="6" :sm="10" :md="8" :lg="5">
               <el-form-item label="任务名称" class="form-item-compact">
                 <el-input
                   v-model="queryParams.jobName"
@@ -28,13 +35,13 @@
               </el-form-item>
             </el-col>
 
-            <el-col :xs="6" :sm="10" :md="8" :lg="8">
+            <el-col :xs="6" :sm="10" :md="8" :lg="5">
               <el-form-item label="任务状态" class="form-item-compact">
                 <el-select
                   v-model="queryParams.jobStatus"
                   placeholder="请选择"
                   clearable
-                  :style="{ width: isMobile ? '100px' : '120px' }"
+                  :style="{ width: isMobile ? '100px' : '100px' }"
                   :size="inputSize"
                 >
                   <el-option
@@ -46,12 +53,27 @@
                 </el-select>
               </el-form-item>
             </el-col>
-            <el-col :xs="6" :sm="10" :md="8" :lg="2" class="query-button-col">
+            <el-col :xs="6" :sm="10" :md="8" :lg="3" class="query-button-col">
               <el-form-item>
                 <el-button type="primary" @click="onSubmit" :size="inputSize" class="query-button">
                   <el-icon><Search /></el-icon>
                   <span>查询</span>
                 </el-button>
+              </el-form-item>
+            </el-col>
+            <el-col :xs="8" :sm="8" :md="8" :lg="3">
+              <el-form-item label="路径" class="form-item-compact">
+                <el-tooltip
+                  v-if="targetObject?.fullPath"
+                  :content="targetObject.fullPath"
+                  placement="top-start"
+                  :disabled="!shouldShowTooltip"
+                >
+                  <el-tag type="info" effect="dark" class="path-tag">
+                    {{ displayText }}
+                  </el-tag>
+                </el-tooltip>
+                <el-tag v-else type="info" effect="dark"> 无路径 </el-tag>
               </el-form-item>
             </el-col>
           </el-row>
@@ -74,22 +96,18 @@
         stripe
       >
         <!-- 任务ID列 -->
-        <!-- <el-table-column
+        <el-table-column
           prop="jobId"
-          label="任务ID"
+          label="插件ID"
           :width="isMobile ? 50 : 70"
           align="center"
           :show-overflow-tooltip="true"
-        /> -->
-        <el-table-column label="序号" :width="isMobile ? 50 : 70" align="center">
-          <template #default="scope">
-            {{ (queryParams.pageNum - 1) * queryParams.pageSize + scope.$index + 1 }}
-          </template>
-        </el-table-column>
+        />
+
         <!-- 任务名称列 -->
         <el-table-column
           prop="jobName"
-          label="任务名称"
+          label="插件名称"
           :min-width="isMobile ? 80 : 100"
           align="center"
           :show-overflow-tooltip="true"
@@ -98,28 +116,25 @@
             <span :title="row.remark">{{ row.jobName }}</span>
           </template>
         </el-table-column>
-
-        <!-- Cron表达式列 -->
         <el-table-column
-          prop="cronExpression"
-          label="cron表达式"
-          :min-width="isMobile ? 100 : 130"
-          align="center"
+          prop="filePath"
+          label="插件路径"
+          :min-width="isMobile ? 100 : 120"
           :show-overflow-tooltip="true"
-        >
-          <template #default="{ row }">
-            <span v-if="isMobile && row.cronExpression && row.cronExpression.length > 12">
-              {{ row.cronExpression.substring(0, 10) + '...' }}
-            </span>
-            <span v-else>{{ row.cronExpression }}</span>
-          </template>
-        </el-table-column>
-
+          align="center"
+        />
+        <el-table-column
+          prop="invokeTarget"
+          label="任务类"
+          :min-width="isMobile ? 100 : 120"
+          :show-overflow-tooltip="true"
+          align="center"
+        />
         <!-- 状态列 -->
         <el-table-column
           prop="jobStatus"
           label="状态"
-          :width="isMobile ? 50 : 80"
+          :width="isMobile ? 50 : 75"
           align="center"
           fixed="right"
         >
@@ -127,7 +142,7 @@
             <el-switch
               :model-value="row.jobStatus"
               :before-change="() => beforeStatusChange(row)"
-              :loading="statusLoading"
+              :loading="row.statusLoading || false"
               inline-prompt
               :active-text="isMobile ? '' : '启用'"
               :inactive-text="isMobile ? '' : '禁用'"
@@ -136,34 +151,6 @@
               :size="inputSize"
               style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
             />
-          </template>
-        </el-table-column>
-
-        <!-- 错过触发策略列 - 移动端隐藏 -->
-        <el-table-column
-          v-if="!isMobile"
-          prop="misfirePolicy"
-          label="错过触发策略"
-          :width="110"
-          align="center"
-          :show-overflow-tooltip="true"
-        >
-          <template #default="{ row }">
-            {{ misfirePolicyMap[row.misfirePolicy] || row.misfirePolicy }}
-          </template>
-        </el-table-column>
-
-        <!-- 并发策略列 - 移动端隐藏 -->
-        <el-table-column
-          v-if="!isMobile"
-          prop="concurrent"
-          label="并发策略"
-          :width="100"
-          align="center"
-          :show-overflow-tooltip="true"
-        >
-          <template #default="{ row }">
-            {{ concurrentMap[row.concurrent] || row.concurrent }}
           </template>
         </el-table-column>
 
@@ -186,54 +173,31 @@
           align="center"
           :show-overflow-tooltip="true"
         />
-
-        <!-- 操作列 -->
-        <el-table-column label="操作" :width="isMobile ? 180 : 350" align="center" fixed="right">
+        <el-table-column
+          prop="createTime"
+          label="创建时间"
+          :width="isMobile ? 130 : 165"
+          align="center"
+        >
           <template #default="{ row }">
-            <div class="action-buttons" :class="{ 'compact-actions': isMobile }">
-              <!-- 移动端显示图标按钮 -->
-              <template v-if="isMobile">
-                <el-button
-                  :loading="row.executedStatus === '1'"
-                  size="small"
-                  type="primary"
-                  @click="execute(row)"
-                  circle
-                  :icon="VideoPlay"
-                />
-                <el-button
-                  size="small"
-                  type="success"
-                  @click="handleUser(row)"
-                  circle
-                  :icon="User"
-                />
-                <el-button
-                  size="small"
-                  type="warning"
-                  @click="handleEdit(row)"
-                  circle
-                  :icon="Edit"
-                />
-              </template>
-
-              <!-- 桌面端显示文字按钮 -->
-              <template v-else>
-                <el-button
-                  size="small"
-                  type="primary"
-                  @click="execute(row)"
-                  :loading="row.executedStatus === '1'"
-                  >运行</el-button
-                >
-                <el-button size="small" type="success" @click="handleUser(row)">账号</el-button>
-                <el-button size="small" type="info" @click="handleLog(row)">日志</el-button>
-                <el-button size="small" type="danger" @click="handleEdit(row)">修改</el-button>
-                <el-button size="small" type="warning" @click="goToPluginManagement(row)"
-                  >管理</el-button
-                >
-              </template>
-            </div>
+            {{ formatDateTime(row.createTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="updateTime"
+          label="更新时间"
+          :width="isMobile ? 130 : 165"
+          align="center"
+        >
+          <template #default="{ row }">
+            {{ formatDateTime(row.updateTime) }}
+          </template>
+        </el-table-column>
+        <!-- 操作列 -->
+        <el-table-column label="操作" :width="isMobile ? 100 : 150" align="center" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" type="primary" @click="handleEdit(row)">开发中</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(row)">卸载</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -317,20 +281,7 @@
     </el-dialog>
 
     <!-- 添加插件对话框 -->
-    <!-- <el-dialog
-      v-model="addFlag"
-      :title="isMobile ? '添加插件' : '安装定时任务插件'"
-      :width="addDialogWidth"
-    >
-      <el-cascader
-        v-model="uploadData.pluginLoaderId"
-        :options="parentOptions"
-        :props="cascaderProps"
-        placeholder="请选择父加载器"
-        style="width: 100%"
-        clearable
-        :size="inputSize"
-      />
+    <el-dialog v-model="addFlag" :title="dialogTitle" :width="addDialogWidth">
       <el-upload
         ref="upload"
         class="upload-demo"
@@ -354,65 +305,12 @@
           :size="inputSize"
           :block="isMobile"
         >
-          安装
+          {{ dialogTitle.startsWith('安装') ? '安装' : '更新' }}
         </el-button>
         <template #tip>
           <div class="el-upload__tip text-red">提示: 只支持安装jar包。请勿安装不明来源的插件。</div>
         </template>
       </el-upload>
-    </el-dialog> -->
-    <el-dialog
-      v-model="addFlag"
-      :title="isMobile ? '添加插件' : '安装定时任务插件'"
-      :width="addDialogWidth"
-    >
-      <div class="dialog-content-center">
-        <!-- 独立的选择加载器控件 -->
-        <div class="loader-selector-container">
-          <el-cascader
-            v-model="uploadData.pluginLoaderId"
-            :options="parentOptions"
-            :props="cascaderProps"
-            placeholder="请选择类加载器"
-            style="width: 100%"
-            clearable
-            :size="inputSize"
-          />
-        </div>
-
-        <!-- 文件上传区域 -->
-        <el-upload
-          ref="upload"
-          class="upload-demo"
-          :action="uploadUrl"
-          :headers="uploadHeaders"
-          :limit="1"
-          accept=".jar"
-          :on-exceed="handleExceed"
-          :auto-upload="false"
-          :before-upload="beforeUpload"
-          :on-success="uploadSuccess"
-          :data="uploadData"
-        >
-          <template #trigger>
-            <el-button type="primary" :size="inputSize" :block="isMobile"> 选择文件 </el-button>
-          </template>
-          <el-button
-            type="success"
-            @click="submitUpload"
-            :size="inputSize"
-            :block="isMobile"
-            style="margin-left: 12px"
-          >
-            安装
-          </el-button>
-          <template #tip>
-            <div class="el-upload__tip text-red">
-              提示: 只支持安装jar包。请勿安装不明来源的插件。
-            </div>
-          </template>
-        </el-upload>
-      </div>
     </el-dialog>
 
     <!-- Cron表达式编辑器 -->
@@ -428,40 +326,36 @@
 
 <script setup>
 import { ref, onMounted, computed, reactive, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { genFileId, ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, VideoPlay, Edit, User } from '@element-plus/icons-vue'
+import { Plus, Search, Link } from '@element-plus/icons-vue'
 import CronEditor from '../components/CronEditor.vue'
-import {
-  updateJob,
-  // deleteJob,
-  selectJobById,
-  selectJobList,
-  updateStatus,
-  run,
-} from '../api/TimedTask'
+import { updateJob, deleteJob, selectJobList, updateStatus } from '../api/TimedTask'
 import { getTree } from '@/api/pluginLoader'
+
 const cronEditorRef = ref(null)
-const router = useRouter()
+const route = useRoute()
 const queryParams = ref({
   pageNum: 1,
   pageSize: 8,
   jobName: undefined,
   jobStatus: undefined,
+  pluginLoaderId: route.params.id,
 })
 const loading = ref(true)
-const statusLoading = ref(false)
 const pagination = ref({ data: [], total: 0 })
 const upload = ref()
 const addFlag = ref(false)
 const editFlag = ref(false)
 const form = ref({})
 const showCronEditor = ref(false)
+const uploadUrl = ref('')
+const uploadData = reactive({
+  pluginLoaderId: route.params.id,
+})
+const dialogTitle = ref('')
 
 const treeData = ref([])
-const uploadData = reactive({
-  pluginLoaderId: null,
-})
 
 // 响应式状态
 const screenWidth = ref(window.innerWidth)
@@ -499,49 +393,36 @@ const handleResize = () => {
   screenWidth.value = window.innerWidth
 }
 
-const cascaderProps = computed(() => ({
-  value: 'id',
-  label: 'name',
-  children: 'children',
-  checkStrictly: true,
-  emitPath: false,
-}))
-
-const parentOptions = computed(() => {
-  return treeData.value
+const maxLength = 30
+const shouldShowTooltip = computed(() => {
+  return targetObject.value?.fullPath?.length > maxLength
+})
+const displayText = computed(() => {
+  const text = targetObject.value?.fullPath
+  if (!text) return '无路径'
+  if (text.length <= maxLength) return text
+  return text.substring(0, maxLength) + '...'
 })
 
 onMounted(() => {
   window.addEventListener('resize', handleResize)
   getJobList()
   getLoaderTree()
-  startPolling()
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
-  stopPolling()
 })
 
 // API相关函数
-const uploadUrl = computed(() => {
-  const baseUrl = import.meta.env.VITE_APP_API_BASE_URL
-  return `${baseUrl}/job/jar/install`
+const baseUrl = computed(() => {
+  const url = import.meta.env.VITE_APP_API_BASE_URL
+  return url
 })
 
 const uploadHeaders = reactive({
   Authorization: localStorage.getItem('userToken') || sessionStorage.getItem('userToken'),
 })
-
-const getLoaderTree = async () => {
-  // 模拟刷新数据
-  const { code, data, msg } = await getTree()
-  if (code === 200) {
-    treeData.value = data
-  } else {
-    ElMessage.error(msg)
-  }
-}
 
 // 业务方法
 const handleSizeChange = (newSize) => {
@@ -587,7 +468,25 @@ const validateCron = async () => {
     }
   }
 }
-
+const targetObject = computed(() => {
+  return findObjectById(treeData.value, Number(route.params.id))
+})
+const findObjectById = (arr, targetId) => {
+  for (const item of arr) {
+    // 如果当前对象就是目标
+    if (item.id === targetId) {
+      return item
+    }
+    // 如果有子节点，递归查找
+    if (item.children && item.children.length > 0) {
+      const found = findObjectById(item.children, targetId)
+      if (found) {
+        return found
+      }
+    }
+  }
+  return null
+}
 const submitUpload = () => {
   upload.value.submit()
 }
@@ -617,13 +516,6 @@ const handleExceed = (files) => {
   upload.value.handleStart(file)
 }
 
-const handleUser = (rowData) => {
-  router.push('/account/' + rowData.jobId)
-}
-
-const handleLog = (rowData) => {
-  router.push('/log/' + rowData.jobId)
-}
 const setStatus = async (rowData) => {
   const { jobName } = rowData
   try {
@@ -634,7 +526,7 @@ const setStatus = async (rowData) => {
     })
 
     // 显示加载状态[6,7](@ref)
-    statusLoading.value = true
+    rowData.statusLoading = true
 
     const { code, msg } = await updateStatus(rowData)
     if (code == 200) {
@@ -657,7 +549,7 @@ const setStatus = async (rowData) => {
     console.log('用户取消操作', error)
     return false
   } finally {
-    statusLoading.value = false
+    rowData.statusLoading = false
   }
 }
 
@@ -672,38 +564,43 @@ const beforeStatusChange = async (row) => {
   }
 }
 
-// const handleDelete = (rowData) => {
-//   const { jobId, jobName } = rowData
-//   ElMessageBox.confirm(`确定要卸载 ${jobName} 任务吗?`, '删除', {
-//     confirmButtonText: '确定',
-//     cancelButtonText: '取消',
-//     type: 'warning',
-//   }).then(() => {
-//     delJob(jobId)
-//   })
-// }
-
-// const delJob = async (id) => {
-//   const { code, msg } = await deleteJob(id)
-//   if (code == 200) {
-//     ElMessage({
-//       message: msg,
-//       type: 'success',
-//     })
-//   } else {
-//     ElMessage({
-//       message: msg,
-//       type: 'error',
-//     })
-//   }
-//   getJobList()
-// }
-
-const onAdd = () => {
-  uploadData.pluginLoaderId = null
-  addFlag.value = true
+const handleDelete = (rowData) => {
+  const { jobId, jobName } = rowData
+  ElMessageBox.confirm(`确定要卸载 ${jobName} 任务吗?`, '删除', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning',
+  }).then(() => {
+    delJob(jobId)
+  })
 }
 
+const delJob = async (id) => {
+  const { code, msg } = await deleteJob(id)
+  if (code == 200) {
+    ElMessage({
+      message: msg,
+      type: 'success',
+    })
+  } else {
+    ElMessage({
+      message: msg,
+      type: 'error',
+    })
+  }
+  getJobList()
+}
+
+const onAdd = () => {
+  uploadUrl.value = `${baseUrl.value}/job/jar/install`
+  dialogTitle.value = isMobile.value ? '安装' : '安装插件'
+  addFlag.value = true
+}
+const onUpdate = () => {
+  dialogTitle.value = isMobile.value ? '更新' : '更新插件'
+  uploadUrl.value = `${baseUrl.value}/job/jar/update`
+  addFlag.value = true
+}
 const submitUpdate = async () => {
   const { code, msg } = await updateJob(form.value)
   if (code == 200) {
@@ -721,10 +618,17 @@ const onSubmit = () => {
 }
 
 const handleEdit = (rowData) => {
-  editFlag.value = true
-  getJob(rowData.jobId)
+  ElMessage.info('开发中')
+  console.log(rowData)
+  // editFlag.value = true
+  // getJob(rowData.jobId)
 }
-
+// 格式化日期时间
+const formatDateTime = (dateTimeStr) => {
+  if (!dateTimeStr) return '-'
+  const date = new Date(dateTimeStr)
+  return date.toLocaleString('zh-CN')
+}
 const getJobList = async () => {
   loading.value = true
   const { code, msg, data } = await selectJobList(queryParams.value)
@@ -736,99 +640,28 @@ const getJobList = async () => {
     ElMessage.error(msg)
   }
 }
-
-const getJob = async (id) => {
-  const { code, msg, data } = await selectJobById(id)
-  if (code == 200) {
-    form.value = data
+const getLoaderTree = async () => {
+  // 模拟刷新数据
+  const { code, data, msg } = await getTree()
+  if (code === 200) {
+    treeData.value = data
   } else {
     ElMessage.error(msg)
   }
 }
+// const getJob = async (id) => {
+//   const { code, msg, data } = await selectJobById(id)
+//   if (code == 200) {
+//     form.value = data
+//   } else {
+//     ElMessage.error(msg)
+//   }
+// }
 
 const statusMaps = [
   { value: '0', label: '启用' },
   { value: '1', label: '禁用' },
 ]
-
-const concurrentMap = {
-  0: '允许并发',
-  1: '禁止并发',
-}
-
-const concurrentMaps = [
-  { value: '0', label: '允许并发' },
-  { value: '1', label: '禁止并发' },
-]
-
-const misfirePolicyMap = {
-  0: '默认策略',
-  1: '激进策略',
-  2: '立即执行',
-  3: '下次执行',
-}
-
-const misfirePolicyMaps = [
-  { value: '0', label: '默认策略' },
-  { value: '1', label: '激进策略' },
-  { value: '2', label: '立即执行' },
-  { value: '3', label: '下次执行' },
-]
-
-const execute = (rowData) => {
-  const { jobName } = rowData
-  ElMessageBox.confirm(`确定要立即运行 ${jobName} 任务吗?`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning',
-  }).then(async () => {
-    await runJob(rowData)
-    getJobList()
-  })
-}
-
-const runJob = async (job) => {
-  const { code, msg } = await run(job)
-  if (code == 200) {
-    ElMessage({
-      message: msg,
-      type: 'success',
-    })
-  } else {
-    ElMessage({
-      message: msg,
-      type: 'error',
-    })
-  }
-}
-const POLLING_INTERVAL = 3000
-let pollTimer = null
-const startPolling = () => {
-  console.log('startPolling')
-  if (pollTimer) return
-  console.log('开始轮询请求数据...')
-  loading.value = true
-  pollTimer = setInterval(() => {
-    getJobList()
-  }, POLLING_INTERVAL)
-}
-
-const stopPolling = () => {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-    console.log('停止轮询')
-    loading.value = false
-  }
-}
-
-const goToPluginManagement = (row) => {
-  if (row) {
-    router.push('/loader/job/' + row.pluginLoaderId)
-    // ElMessage.info(`跳转到加载器 ${selectedLoader.value.name} 的插件管理页面`)
-    // 实际项目中这里应该进行路由跳转
-  }
-}
 </script>
 
 <style scoped>
@@ -1040,21 +873,5 @@ const goToPluginManagement = (row) => {
 :deep(.el-table__body-wrapper::-webkit-scrollbar-thumb) {
   background-color: #c0c4cc;
   border-radius: 3px;
-}
-
-/* 方法1：弹性布局居中 */
-.dialog-content-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center; /* 水平居中 */
-  width: 100%;
-}
-
-/* 控制选择器宽度，使其在居中时不会太宽 */
-.loader-selector-container {
-  width: 60%; /* 调整这个值来匹配图片中的宽度 */
-  max-width: 400px; /* 最大宽度限制 */
-  margin-bottom: 20px;
-  text-align: center; /* 文本也居中（如果需要） */
 }
 </style>

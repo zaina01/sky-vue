@@ -17,7 +17,7 @@
         <!-- <el-button type="primary" @click="onSubmit">变更</el-button> -->
       </el-form-item>
     </el-form>
-    <el-divider />
+    <!-- <el-divider /> -->
     <!-- <div class="auto-resizer">
       <el-auto-resizer>
         <template #default="{ height, width }">
@@ -125,8 +125,8 @@ const getColumns = async () => {
   const { code, msg, data } = await getAccountColumn(jobId.value)
   if (code == 200) {
     columns.value = data
-    primaryKey.value = columns.value.find((column) => column.primaryKey).dataKey
-    console.log('primaryKey: ' + primaryKey.value)
+    primaryKey.value = columns.value.find((column) => column.primaryKey)
+    console.log('primaryKey: ' + primaryKey.value.dataKey)
     formConfigEdit.value = formConfigbuild(columns.value)
     // for (let index = 0; index < formConfigEdit.value.length; index++) {
     //   const item = formConfigEdit.value[index].filter((col) => !col.primaryKey)
@@ -134,7 +134,7 @@ const getColumns = async () => {
     //     formConfigAdd.value.push(item)
     //   }
     // }
-    formConfigAdd.value = formConfigbuild(columns.value.filter((item) => !item.primaryKey))
+    formConfigAdd.value = formConfigbuild(columns.value.filter((item) => !item.primaryKey.dataKey))
     console.log(formConfigAdd.value)
     // columns.value.push({
     //   key: 'action',
@@ -211,7 +211,7 @@ const delAccount = async (id) => {
   }
 }
 const handleEdit = (rowData) => {
-  const id = rowData[primaryKey.value]
+  const id = rowData[primaryKey.value.dataKey]
   selectAccount(id)
   editFlag.value = true
   dialogTitle.value = '修改'
@@ -227,10 +227,10 @@ const selectAccount = async (id) => {
 }
 const handleDelete = (rowData) => {
   console.log(rowData)
-  const id = rowData[primaryKey.value]
-  ElMessageBox.confirm(`确定要删除${primaryKey.value} 为 ${id} 的值吗?`, '删除', {
-    confirmButtonText: 'OK',
-    cancelButtonText: 'Cancel',
+  const id = rowData[primaryKey.value.dataKey]
+  ElMessageBox.confirm(`确定要删除 ${primaryKey.value.title} 为 ${id} 的值吗?`, '删除', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
     type: 'warning',
   }).then(() => {
     delAccount(id)
@@ -273,11 +273,6 @@ const putAccount = async () => {
     })
     editFlag.value = false
     getDataList()
-  } else {
-    ElMessage({
-      message: msg,
-      type: 'error',
-    })
   }
 }
 // const onSubmit = () => {

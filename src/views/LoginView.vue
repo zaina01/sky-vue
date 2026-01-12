@@ -43,7 +43,6 @@
                 placeholder="请输入密码"
                 show-password
                 size="large"
-                @keyup.enter="handleLogin"
               />
               <span class="input-icon">🔒</span>
             </div>

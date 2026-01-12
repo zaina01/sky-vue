@@ -17,7 +17,12 @@
       highlight-current-row
       @row-click="handleRowClick"
     >
-      <el-table-column prop="jobLogId" min-width="80" label="序号" align="center" />
+      <!-- <el-table-column prop="jobLogId" min-width="80" label="序号" align="center" /> -->
+      <el-table-column label="序号" :min-width="isMobile ? 50 : 70" align="center">
+        <template #default="scope">
+          {{ (pagination.currentPage - 1) * pagination.pageSize + scope.$index + 1 }}
+        </template>
+      </el-table-column>
       <el-table-column prop="jobName" label="任务名称" min-width="120" show-overflow-tooltip />
       <el-table-column prop="status" label="状态" min-width="100" align="center">
         <template #default="scope">
@@ -113,8 +118,9 @@ const pagination = reactive({
 const statusMap = {
   0: { text: '执行成功', type: 'success' },
   1: { text: '执行失败', type: 'danger' },
-  2: { text: '执行中', type: 'warning' },
-  3: { text: '等待执行', type: 'info' },
+  2: { text: '执行中', type: 'info' },
+  3: { text: '系统退出', type: 'warning' },
+  4: { text: '等待执行', type: 'primary' },
 }
 
 // 计算属性 - 当前页数据

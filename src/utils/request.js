@@ -36,8 +36,8 @@ request.interceptors.response.use(
       return response.data
     } else {
       // 处理业务逻辑错误
-      // ElMessage.error(response.data.msg || '请求失败')
-      return Promise.reject(response.data)
+      ElMessage.error(response.data.msg || '请求失败')
+      return Promise.reject(response)
     }
   },
   (error) => {

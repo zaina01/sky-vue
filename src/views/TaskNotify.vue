@@ -17,7 +17,7 @@
         <!-- <el-button type="primary" @click="onSubmit">变更</el-button> -->
       </el-form-item>
     </el-form>
-    <el-divider />
+    <!-- <el-divider /> -->
     <!-- <div class="auto-resizer">
       <el-auto-resizer>
         <template #default="{ height, width }">
@@ -26,7 +26,12 @@
       </el-auto-resizer>
     </div> -->
     <el-table :data="notifys" v-loading="loading" style="width: 100%" highlight-current-row>
-      <el-table-column prop="id" min-width="80" label="序号" align="center" />
+      <!-- <el-table-column prop="id" min-width="80" label="序号" align="center" /> -->
+      <el-table-column label="序号" :width="isMobile ? 50 : 70" align="center">
+        <template #default="scope">
+          {{ (queryParams.pageNum - 1) * queryParams.pageSize + scope.$index + 1 }}
+        </template>
+      </el-table-column>
       <el-table-column prop="notifyName" min-width="80" label="服务名称" align="center" />
       <el-table-column prop="createTime" min-width="150" label="创建时间" align="center">
         <template #default="scope">
@@ -169,7 +174,10 @@ const editFlag = ref(false)
 const formConfig = ref([])
 const dynamicRules = ref({})
 const dynamicFormRef = ref()
-const queryParams = ref({})
+const queryParams = ref({
+  pageNum: 1,
+  pageSize: 8,
+})
 const form = ref({})
 const editId = ref(undefined)
 const serviceList = ref([])
@@ -417,6 +425,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   margin: 5px 0;
+  padding: 16px;
 }
 .el-form-item {
   margin: 0;

@@ -38,10 +38,14 @@
                 <span></span>
               </el-tooltip>
             </div>
-            <div class="menu-item" :class="{ 'menu-item-collapsed': isCollapsed }">
+            <div
+              class="menu-item"
+              :class="{ 'menu-item-collapsed': isCollapsed }"
+              @click="handleMenuClick('/loader')"
+            >
               <el-icon><DataAnalysis /></el-icon>
-              <span v-if="!isCollapsed">数据管理(功能开发中)</span>
-              <el-tooltip v-else effect="dark" content="数据管理(功能开发中)" placement="right">
+              <span v-if="!isCollapsed">加载器管理</span>
+              <el-tooltip v-else effect="dark" content="加载器管理" placement="right">
                 <span></span>
               </el-tooltip>
             </div>
@@ -89,7 +93,7 @@ const isCollapsed = ref(false)
 const screenWidth = ref(window.innerWidth)
 
 // 计算属性：判断是否是首页
-const isHomePage = computed(() => route.path === '/')
+const isHomePage = computed(() => route.path === '/timedtask')
 // 计算属性：获取页面标题
 const pageTitle = computed(() => route.meta?.title || '')
 
