@@ -586,6 +586,7 @@ const handleDelete = async (data) => {
       ElMessage.success(msg)
       if (selectedLoader.value && selectedLoader.value.id === data.id) {
         selectedLoader.value = null
+        selecteId.value = null
       }
     } else {
       ElMessage.error(msg)

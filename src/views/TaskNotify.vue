@@ -1,102 +1,101 @@
 <template>
   <div class="app-container">
-    <el-form :inline="true" :model="queryParams" class="demo-form-inline">
-      <el-form-item>
-        <el-button type="primary" @click="onAdd">添加服务</el-button>
-      </el-form-item>
-      <!-- <el-form-item label="任务名称">
-        <el-input v-model="queryParams.jobName" placeholder="请输入" clearable />
-      </el-form-item>
-      <el-form-item label="任务状态">
-        <el-input v-model="queryParams.jobStatus" placeholder="请输入" clearable />
-      </el-form-item> -->
-      <!-- <el-form-item label="输入3">
-        <el-input v-model="queryParams.user" placeholder="请输入" clearable />
-      </el-form-item> -->
-      <el-form-item>
-        <!-- <el-button type="primary" @click="onSubmit">变更</el-button> -->
-      </el-form-item>
+    <!-- 响应式表单区域 -->
+    <el-form :inline="true" :model="queryParams" class="demo-form-inline responsive-form">
+      <el-row :gutter="16" class="form-row" justify="space-between">
+        <!-- 左侧：添加按钮和搜索条件 -->
+        <el-col :xs="24" :sm="18" :md="18" :lg="18">
+          <el-row :gutter="16">
+            <!-- 操作按钮组 -->
+            <el-col :xs="6" :sm="4" :md="4" :lg="5">
+              <el-form-item>
+                <el-button type="primary" @click="onAdd" :size="inputSize" class="action-button">
+                  <el-icon><Plus /></el-icon>
+                  <span v-if="!isMobile">添加</span>
+                </el-button>
+              </el-form-item>
+            </el-col>
+          </el-row>
+        </el-col>
+
+        <!-- 右侧：查询按钮 -->
+      </el-row>
     </el-form>
-    <!-- <el-divider /> -->
-    <!-- <div class="auto-resizer">
-      <el-auto-resizer>
-        <template #default="{ height, width }">
-          <el-table-v2 :columns="columns" :data="dataList" :width="width" :height="height" fixed />
-        </template>
-      </el-auto-resizer>
-    </div> -->
-    <el-table :data="notifys" v-loading="loading" style="width: 100%" highlight-current-row>
-      <!-- <el-table-column prop="id" min-width="80" label="序号" align="center" /> -->
-      <el-table-column label="序号" :width="isMobile ? 50 : 70" align="center">
-        <template #default="scope">
-          {{ (queryParams.pageNum - 1) * queryParams.pageSize + scope.$index + 1 }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="notifyName" min-width="80" label="服务名称" align="center" />
-      <el-table-column prop="createTime" min-width="150" label="创建时间" align="center">
-        <template #default="scope">
-          {{ formatTime(scope.row.createTime) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="updateTime" min-width="150" label="更新时间" align="center">
-        <template #default="scope">
-          {{ formatTime(scope.row.updateTime) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="status" min-width="80" label="状态" align="center">
-        <template #default="scope">
-          <el-switch
-            v-if="scope.row.status !== '0'"
-            v-model="scope.row.status"
-            class="ml-2"
-            inline-prompt
-            style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-            active-text="启用"
-            inactive-text="禁用"
-            active-value="1"
-            inactive-value="2"
-            :before-change="
-              async () => {
-                return await setStatus(scope.row)
-              }
-            "
-          >
-          </el-switch>
-          <el-popover
-            v-else
-            title="提示"
-            content="需要点击修改，配置必填项后才可启用。"
-            placement="top"
-          >
-            <template #reference>
-              <el-switch
-                v-model="scope.row.status"
-                disabled
-                class="ml-2"
-                inline-prompt
-                style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-                active-text="启用"
-                inactive-text="未配置"
-                active-value="1"
-                inactive-value="0"
-              >
-              </el-switch>
-            </template>
-          </el-popover>
-        </template>
-      </el-table-column>
-      <el-table-column prop="remark" min-width="80" label="备注" align="center" />
-      <el-table-column label="操作" min-width="200" align="center" fixed="right">
-        <template #default="scope">
-          <el-button size="small" type="warning" @click.stop="handleEdit(scope.row)">
-            修改
-          </el-button>
-          <el-button size="small" type="danger" @click.stop="handleDelete(scope.row)">
-            删除
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <div class="table-container">
+      <el-table :data="notifys" v-loading="loading" style="width: 100%" highlight-current-row>
+        <!-- <el-table-column prop="id" min-width="80" label="序号" align="center" /> -->
+        <el-table-column label="序号" :width="isMobile ? 50 : 70" align="center">
+          <template #default="scope">
+            {{ (queryParams.pageNum - 1) * queryParams.pageSize + scope.$index + 1 }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="notifyName" min-width="80" label="服务名称" align="center" />
+        <el-table-column prop="createTime" min-width="150" label="创建时间" align="center">
+          <template #default="scope">
+            {{ formatTime(scope.row.createTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="updateTime" min-width="150" label="更新时间" align="center">
+          <template #default="scope">
+            {{ formatTime(scope.row.updateTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" min-width="80" label="状态" align="center">
+          <template #default="scope">
+            <el-switch
+              v-if="scope.row.status !== '0'"
+              v-model="scope.row.status"
+              class="ml-2"
+              inline-prompt
+              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              active-text="启用"
+              inactive-text="禁用"
+              active-value="1"
+              inactive-value="2"
+              :before-change="
+                async () => {
+                  return await setStatus(scope.row)
+                }
+              "
+            >
+            </el-switch>
+            <el-popover
+              v-else
+              title="提示"
+              content="需要点击修改，配置必填项后才可启用。"
+              placement="top"
+            >
+              <template #reference>
+                <el-switch
+                  v-model="scope.row.status"
+                  disabled
+                  class="ml-2"
+                  inline-prompt
+                  style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+                  active-text="启用"
+                  inactive-text="未配置"
+                  active-value="1"
+                  inactive-value="0"
+                >
+                </el-switch>
+              </template>
+            </el-popover>
+          </template>
+        </el-table-column>
+        <el-table-column prop="remark" min-width="80" label="备注" align="center" />
+        <el-table-column label="操作" min-width="200" align="center" fixed="right">
+          <template #default="scope">
+            <el-button size="small" type="warning" @click.stop="handleEdit(scope.row)">
+              修改
+            </el-button>
+            <el-button size="small" type="danger" @click.stop="handleDelete(scope.row)">
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </div>
+
     <el-dialog v-model="AddFlag" title="添加推送服务" width="500" :align-center="true">
       <div class="tags" v-if="serviceList.length !== 0">
         <el-tag
@@ -149,8 +148,10 @@
 </template>
 
 <script setup lang="jsx">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Plus } from '@element-plus/icons-vue'
+
 import {
   getServices,
   getNotifyList,
@@ -178,6 +179,10 @@ const queryParams = ref({
   pageNum: 1,
   pageSize: 8,
 })
+
+const screenWidth = ref(window.innerWidth)
+const isMobile = computed(() => screenWidth.value < 768)
+
 const form = ref({})
 const editId = ref(undefined)
 const serviceList = ref([])
@@ -206,7 +211,7 @@ const setStatus = async (rowData) => {
   switchLoading.value = true
   console.log('setStatus' + rowData)
   const { notifyName } = rowData
-  await ElMessageBox.confirm(`确定要变更 ${notifyName} 任务状态吗?`, '状态变更', {
+  await ElMessageBox.confirm(`确定要变更 ${notifyName} 推送服务状态吗?`, '状态变更', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
@@ -413,33 +418,98 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 修复高度问题 - 关键修改 */
 .app-container {
   width: 100%;
-  height: 90%;
-}
-.auto-resizer {
-  width: 100%;
-  height: 90%;
-}
-.demo-form-inline {
+  height: 100%;
   display: flex;
-  justify-content: space-between;
-  margin: 5px 0;
-  padding: 16px;
+  flex-direction: column;
+  padding: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
-.el-form-item {
-  margin: 0;
+
+/* 表单区域 */
+.demo-form-inline {
+  padding: 16px;
+  flex-shrink: 0;
+}
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+}
+/* 表单项紧凑样式 */
+.form-item-compact :deep(.el-form-item__label) {
+  padding-right: 8px;
+}
+/* 操作按钮样式 */
+.action-button {
+  min-width: 80px;
+}
+
+/* 表格容器 - 关键修复 */
+.table-container {
+  flex: 1;
+  min-height: 200px;
+  padding: 0 16px;
+  overflow: auto;
+}
+
+/* 操作按钮组样式 */
+.action-buttons {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.compact-actions {
+  gap: 2px;
+}
+
+.compact-actions .el-button {
+  min-width: 28px;
+  height: 28px;
+}
+/* 移动端单元格样式 */
+.mobile-cell {
+  font-size: 12px;
+}
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  max-width: 100%;
+}
+/* 对话框操作按钮 */
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 20px;
 }
 .ml-3 {
+  margin-left: 12px;
+}
+
+.text-red {
+  color: #f56c6c;
+  font-size: 12px;
+  margin-top: 8px;
+}
+/* .ml-3 {
   margin-left: 10px;
 }
 .el-row {
   margin-bottom: 20px;
-}
-.centered-form {
+} */
+/* .centered-form {
   margin: 0 auto;
   padding: 10px;
-}
+} */
 .tags {
   /* display: flex;
   justify-content: space-between; */
@@ -468,5 +538,111 @@ onMounted(() => {
 .tags-item:hover {
   background-color: #409eff !important; /* 悬停时加深背景色 */
   border-color: #409eff !important;
+}
+/* 响应式媒体查询 */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 0;
+  }
+
+  .demo-form-inline {
+    padding: 12px;
+  }
+
+  .table-container {
+    padding: 0 12px;
+  }
+
+  .pagination-container {
+    padding: 12px;
+    justify-content: center;
+  }
+
+  .form-row .el-col {
+    margin-bottom: 8px;
+  }
+
+  .action-buttons .el-button {
+    min-width: auto;
+    padding: 6px 8px;
+  }
+
+  .dialog-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dialog-actions .el-button {
+    width: 100%;
+  }
+
+  /* 移动端查询按钮样式 */
+  .query-button-col {
+    justify-content: flex-end !important;
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .demo-form-inline {
+    padding: 8px;
+  }
+
+  .table-container {
+    padding: 0 8px;
+  }
+
+  .action-buttons {
+    gap: 2px;
+  }
+
+  .action-buttons .el-button {
+    padding: 4px 6px;
+    font-size: 12px;
+  }
+
+  .query-button-col {
+    margin-top: 8px;
+  }
+}
+
+/* 确保表格在移动端正确显示 */
+:deep(.el-table) {
+  font-size: 14px;
+}
+
+.compact-table :deep(.el-table__row) {
+  height: 40px;
+}
+
+/* 表格滚动条优化 */
+:deep(.el-table__body-wrapper) {
+  scrollbar-width: thin;
+}
+
+:deep(.el-table__body-wrapper::-webkit-scrollbar) {
+  width: 6px;
+  height: 6px;
+}
+
+:deep(.el-table__body-wrapper::-webkit-scrollbar-thumb) {
+  background-color: #c0c4cc;
+  border-radius: 3px;
+}
+
+/* 方法1：弹性布局居中 */
+.dialog-content-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* 水平居中 */
+  width: 100%;
+}
+
+/* 控制选择器宽度，使其在居中时不会太宽 */
+.loader-selector-container {
+  width: 60%; /* 调整这个值来匹配图片中的宽度 */
+  max-width: 400px; /* 最大宽度限制 */
+  margin-bottom: 20px;
+  text-align: center; /* 文本也居中（如果需要） */
 }
 </style>

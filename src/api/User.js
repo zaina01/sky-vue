@@ -1,6 +1,6 @@
 import request from '../utils/request'
 
-export function login(user) {
+export function loginApi(user) {
   return request({
     url: '/user/login',
     method: 'post',
@@ -13,5 +13,13 @@ export function register(user) {
     url: '/user/register',
     method: 'post',
     data: user,
+  })
+}
+
+export function changePasswordApi(data) {
+  return request({
+    url: '/user/change-password',
+    method: 'post',
+    data: data,
   })
 }

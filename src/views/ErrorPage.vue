@@ -63,12 +63,12 @@
     </div>
 
     <!-- 技术信息（开发环境显示） -->
-    <div v-if="isDevelopment && errorDetails" class="tech-info">
+    <!-- <div v-if="isDevelopment && errorDetails" class="tech-info">
       <details>
         <summary>技术信息</summary>
         <pre>{{ errorDetails }}</pre>
       </details>
-    </div>
+    </div> -->
 
     <!-- 联系支持 -->
     <!-- <div class="support">

@@ -35,6 +35,12 @@ export default defineConfig({
         // 如果你的 context-path 是 /api, 则不需要 rewrite
         // 如果后端没有额外的路径前缀，重写规则可以置空：rewrite: (path) => path.replace(/^\/api/, '')
       },
+      // 单独代理 WebSocket
+      '/api/ws': {
+        target: 'ws://localhost:8080',
+        ws: true, // 关键：启用 WebSocket 代理
+        changeOrigin: true,
+      },
     },
   },
   resolve: {

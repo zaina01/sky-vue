@@ -301,13 +301,14 @@ export default {
       parseExpressionFlag.value = true
       nextExecutionTime.value = '无法计算执行时间: 无效的Cron表达式'
       nextExecutionTimes.value = []
-      const flag = await isValidCronExpression(cronExpression.value)
-      console.log(flag)
-      if (!flag) {
-        parseExpressionFlag.value = false
-        return false
-      }
       try {
+        const flag = await isValidCronExpression(cronExpression.value)
+        console.log(flag)
+        if (!flag) {
+          parseExpressionFlag.value = false
+          return false
+        }
+
         const parts = parseCronExpression(cronExpression.value)
         // 更新所有部分
         cronParts.value = {
@@ -323,6 +324,8 @@ export default {
         // 触发更新
         updateCronExpression()
       } catch (error) {
+        parseExpressionFlag.value = false
+        console.log(error)
         console.error('Invalid cron expression:', error)
         // 可以添加用户提示
         // alert('无效的Cron表达式，请检查格式')

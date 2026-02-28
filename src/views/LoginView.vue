@@ -76,7 +76,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { login } from '../api/User'
+import { useUserStore } from '@/stores/user'
+const userStore = useUserStore()
 
 // 路由实例
 const router = useRouter()
@@ -139,13 +140,12 @@ const handleLogin = async () => {
   loading.value = true
 
   try {
-    const { code, data } = await login(loginForm)
-    if (code === 200) {
+    // const { code, data } = await login(loginForm)
+    const flag = await userStore.login(loginForm)
+    console.log(flag)
+    if (flag) {
       // 登录成功处理
-      ElMessage.success('登录成功！')
       // 存储登录状态
-      localStorage.setItem('isLoggedIn', 'true')
-      localStorage.setItem('userToken', data)
       // 跳转到首页
       router.push('/')
     }

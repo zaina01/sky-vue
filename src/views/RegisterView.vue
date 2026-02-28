@@ -34,7 +34,12 @@
               <span class="input-icon">🧙‍♂️</span>
             </div>
           </el-form-item>
-
+          <el-form-item prop="email">
+            <div class="input-group">
+              <el-input v-model="registerForm.email" placeholder="请输入邮箱" size="large" />
+              <span class="input-icon">📪</span>
+            </div>
+          </el-form-item>
           <el-form-item prop="password">
             <div class="input-group">
               <el-input
@@ -99,11 +104,12 @@ const router = useRouter()
 // 响应式数据
 const registerFormRef = ref()
 const loading = ref(false)
-const agreeTerms = ref(false)
+const agreeTerms = ref(true)
 
 const registerForm = reactive({
   username: '',
   password: '',
+  email: '',
   confirmPassword: '',
 })
 
@@ -138,6 +144,15 @@ const registerRules = {
     },
   ],
   confirmPassword: [{ validator: validateConfirmPassword, trigger: 'blur' }],
+  email: [
+    { required: true, message: '邮箱不能为空', trigger: 'blur' },
+    {
+      type: 'email',
+      message: '邮箱格式不正确',
+      trigger: 'blur',
+    },
+    { max: 100, message: '邮箱长度不能超过100个字符', trigger: 'blur' },
+  ],
 }
 
 const handleMouseMove = (e) => {

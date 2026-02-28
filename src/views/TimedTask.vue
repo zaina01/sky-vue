@@ -81,7 +81,7 @@
           align="center"
           :show-overflow-tooltip="true"
         /> -->
-        <el-table-column label="序号" :width="isMobile ? 50 : 70" align="center">
+        <el-table-column label="序号" :width="isMobile ? 50 : 60" align="center">
           <template #default="scope">
             {{ (queryParams.pageNum - 1) * queryParams.pageSize + scope.$index + 1 }}
           </template>
@@ -188,7 +188,7 @@
         />
 
         <!-- 操作列 -->
-        <el-table-column label="操作" :width="isMobile ? 180 : 350" align="center" fixed="right">
+        <el-table-column label="操作" :width="isMobile ? 180 : 370" align="center" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons" :class="{ 'compact-actions': isMobile }">
               <!-- 移动端显示图标按钮 -->
@@ -224,7 +224,7 @@
                   type="primary"
                   @click="execute(row)"
                   :loading="row.executedStatus === '1'"
-                  >运行</el-button
+                  >{{ row.executedStatus === '1' ? '运行中' : '运行' }}</el-button
                 >
                 <el-button size="small" type="success" @click="handleUser(row)">账号</el-button>
                 <el-button size="small" type="info" @click="handleLog(row)">日志</el-button>
@@ -427,7 +427,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, reactive, onUnmounted } from 'vue'
+import { ref, onMounted, computed, reactive, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { genFileId, ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Search, VideoPlay, Edit, User } from '@element-plus/icons-vue'
@@ -441,6 +441,9 @@ import {
   run,
 } from '../api/TimedTask'
 import { getTree } from '@/api/pluginLoader'
+
+import jobWebSocketService from '@/api/job-websocket'
+
 const cronEditorRef = ref(null)
 const router = useRouter()
 const queryParams = ref({
@@ -462,6 +465,9 @@ const treeData = ref([])
 const uploadData = reactive({
   pluginLoaderId: null,
 })
+
+const jobConnected = ref(false)
+const jobSubscriptionList = ref([])
 
 // 响应式状态
 const screenWidth = ref(window.innerWidth)
@@ -511,16 +517,17 @@ const parentOptions = computed(() => {
   return treeData.value
 })
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('resize', handleResize)
   getJobList()
   getLoaderTree()
-  startPolling()
+  // startPolling()
 })
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize)
-  stopPolling()
+  unsubscribeTask() // 清理所有订阅
+  disconnectJobWebSocket()
 })
 
 // API相关函数
@@ -589,7 +596,14 @@ const validateCron = async () => {
 }
 
 const submitUpload = () => {
-  upload.value.submit()
+  if (uploadData.pluginLoaderId) {
+    upload.value.submit()
+  } else {
+    ElMessage({
+      message: '未选择类加载器',
+      type: 'error',
+    })
+  }
 }
 
 const uploadSuccess = (res, uploadFile, uploadFiles) => {
@@ -727,11 +741,23 @@ const handleEdit = (rowData) => {
 
 const getJobList = async () => {
   loading.value = true
+
   const { code, msg, data } = await selectJobList(queryParams.value)
   if (code == 200) {
     pagination.value.data = data.list
     pagination.value.total = data.total
     loading.value = false
+    if (!jobConnected.value) {
+      await connectJobWebSocket()
+    }
+    // 先取消所有旧的订阅
+    unsubscribeTask()
+    //       // 清除订阅列表
+    jobSubscriptionList.value = []
+    // 为新的数据重新订阅
+    pagination.value.data.forEach((item) => {
+      subscribeTask(item.jobId)
+    })
   } else {
     ElMessage.error(msg)
   }
@@ -781,10 +807,14 @@ const execute = (rowData) => {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
-  }).then(async () => {
-    await runJob(rowData)
-    getJobList()
   })
+    .then(async () => {
+      await runJob(rowData)
+      // getJobList()
+    })
+    .catch((error) => {
+      console.log(error)
+    })
 }
 
 const runJob = async (job) => {
@@ -801,26 +831,26 @@ const runJob = async (job) => {
     })
   }
 }
-const POLLING_INTERVAL = 3000
-let pollTimer = null
-const startPolling = () => {
-  console.log('startPolling')
-  if (pollTimer) return
-  console.log('开始轮询请求数据...')
-  loading.value = true
-  pollTimer = setInterval(() => {
-    getJobList()
-  }, POLLING_INTERVAL)
-}
+// const POLLING_INTERVAL = 3000
+// let pollTimer = null
+// const startPolling = () => {
+//   console.log('startPolling')
+//   if (pollTimer) return
+//   console.log('开始轮询请求数据...')
+//   loading.value = true
+//   pollTimer = setInterval(() => {
+//     getJobList()
+//   }, POLLING_INTERVAL)
+// }
 
-const stopPolling = () => {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-    console.log('停止轮询')
-    loading.value = false
-  }
-}
+// const stopPolling = () => {
+//   if (pollTimer) {
+//     clearInterval(pollTimer)
+//     pollTimer = null
+//     console.log('停止轮询')
+//     loading.value = false
+//   }
+// }
 
 const goToPluginManagement = (row) => {
   if (row) {
@@ -828,6 +858,78 @@ const goToPluginManagement = (row) => {
     // ElMessage.info(`跳转到加载器 ${selectedLoader.value.name} 的插件管理页面`)
     // 实际项目中这里应该进行路由跳转
   }
+}
+const disconnectJobWebSocket = async () => {
+  jobWebSocketService.disconnect()
+  jobWebSocketService.ws.off('onConnect')
+  jobWebSocketService.ws.off('onDisconnect')
+}
+const connectJobWebSocket = async () => {
+  const success = await jobWebSocketService.connect()
+  if (success) {
+    jobConnected.value = true
+  }
+}
+
+//  unsubscribeTask 方法
+const unsubscribeTask = () => {
+  if (jobSubscriptionList.value && jobSubscriptionList.value.length > 0) {
+    jobSubscriptionList.value.forEach((subId) => {
+      console.log('取消订阅任务:', subId)
+      if (subId) {
+        jobWebSocketService.unsubscribeToTask(subId) // 使用 subId 取消订阅
+      }
+    })
+    jobSubscriptionList.value = [] // 清空列表
+  }
+}
+
+// // 添加监听
+// watch(
+//   () => [queryParams.value.pageNum, queryParams.value.pageSize, pagination.value.data],
+//   (newValues, oldValues) => {
+//     const [newCurrentPage, newPageSize, newData] = newValues
+//     const [oldCurrentPage, oldPageSize, oldData] = oldValues || []
+//     console.log('newCurrentPage', newCurrentPage, 'newPageSize', newPageSize, 'newData', newData)
+//     console.log('oldCurrentPage', oldCurrentPage, 'oldPageSize', oldPageSize, 'oldData', oldData)
+//     if (newData && newData.length > 0) {
+//       // 取消所有旧的订阅
+//       if (newCurrentPage == oldCurrentPage || newPageSize == oldPageSize || newData == oldData) {
+//         return
+//       }
+//       unsubscribeTask()
+//       // 清除订阅列表
+//       jobSubscriptionList.value = []
+//       // 为新的数据重新订阅
+//       newData.forEach((item) => {
+//         subscribeTask(item.jobId)
+//       })
+//     }
+//   },
+//   { deep: true, immediate: true }, // deep: true 深度监听，immediate: true 立即执行一次
+// )
+
+const subscribeTask = (taskId) => {
+  console.log('订阅任务:', taskId)
+  if (!taskId) return null
+
+  const subId = jobWebSocketService.subscribeToTask(taskId, (data) => {
+    console.log('收到任务更新:', data)
+    if (data.code == 200) {
+      // 找到对应的任务并更新
+      const index = pagination.value.data.findIndex((item) => item.jobId === data.data.jobId)
+      if (index !== -1) {
+        pagination.value.data[index] = { ...pagination.value.data[index], ...data.data }
+      }
+    } else {
+      console.log('更新失败:', data.msg)
+    }
+  })
+
+  if (subId) {
+    jobSubscriptionList.value.push(subId)
+  }
+  return subId
 }
 </script>
 

@@ -376,6 +376,8 @@ import { pluginDependList, removePluginDepend, installPluginDepend } from '@/api
 import { useRoute, useRouter } from 'vue-router'
 import { getTree } from '@/api/pluginLoader'
 
+import stringWidth from 'string-width'
+
 const route = useRoute()
 const router = useRouter()
 // 响应式数据
@@ -415,8 +417,21 @@ const shouldShowTooltip = computed(() => {
 const displayText = computed(() => {
   const text = targetObject.value?.fullPath
   if (!text) return '无路径'
-  if (text.length <= maxLength) return text
-  return text.substring(0, maxLength) + '...'
+  if (stringWidth(text) <= maxLength) return text
+  let result = ''
+  let currentWidth = 0
+
+  for (let char of text) {
+    const charWidth = stringWidth(char)
+    if (currentWidth + charWidth > maxLength) {
+      result += '...'
+      break
+    }
+    result += char
+    currentWidth += charWidth
+  }
+
+  return result
 })
 const disabledButton = computed(() => {
   const parentId = targetObject.value?.parentId

@@ -96,6 +96,18 @@ const router = createRouter({
           component: () => import('@/views/PluginJob.vue'),
           meta: { title: '插件管理' },
         },
+        {
+          path: '/user',
+          name: 'User',
+          component: () => import('@/views/UserInfo.vue'),
+          meta: { title: '个人中心' },
+        },
+        {
+          path: '/system',
+          name: 'System',
+          component: () => import('@/views/SystemInfo.vue'),
+          meta: { title: '关于系统' },
+        },
       ],
     },
   ],

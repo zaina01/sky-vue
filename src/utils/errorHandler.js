@@ -5,7 +5,7 @@ export const setupErrorHandler = (router) => {
     console.error('Vue 错误:', err)
     console.error('组件:', vm?.$options?.name)
     console.error('位置:', info)
-
+    if (err?.status == 200) return
     // 跳转到错误页面
     router.push({
       name: 'ErrorPage',
@@ -28,6 +28,8 @@ export const setupErrorHandler = (router) => {
 
   // 未处理的 Promise 错误
   window.addEventListener('unhandledrejection', (event) => {
+    console.log('event' + JSON.stringify(event))
+    if (event.reason === 'cancel') return
     console.error('未处理的 Promise 错误:', event.reason)
     if (event.reason.status == 200) return
     router.push({

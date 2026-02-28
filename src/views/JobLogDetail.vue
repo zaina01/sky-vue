@@ -53,6 +53,9 @@ import { computed, ref, watch, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { DocumentCopy } from '@element-plus/icons-vue'
 import { selectJobLog } from '../api/TaskLog'
+
+import jobLogWebSocketService from '@/api/jobLog-websocket'
+
 // 接收props
 const props = defineProps({
   jobLogId: {
@@ -64,6 +67,8 @@ const jobLogData = ref({})
 // onMounted(() => {
 //   getJobLog(props.jobLogId)
 // })
+const jobLogDetailSubscriptionList = ref([])
+
 watch(
   () => props.jobLogId,
   (newId) => {
@@ -86,6 +91,10 @@ const getJobLog = async (id) => {
   const { code, msg, data } = await selectJobLog(id)
   if (code == 200) {
     jobLogData.value = data
+    if (jobLogData.value.status === '2') {
+      loading.value = true
+      subscribeTask(props.jobLogId)
+    }
   } else {
     ElMessage.error(msg)
   }
@@ -95,48 +104,51 @@ const statusTagType = computed(() => {
   const statusMap = {
     0: 'success',
     1: 'danger',
-    2: 'warning',
-    3: 'info',
+    2: 'info',
+    3: 'warning',
+    4: 'primary',
   }
   return statusMap[jobLogData.value.status] || 'info'
 })
 
-const POLLING_INTERVAL = 3000
-let pollTimer = null
-const startPolling = () => {
-  console.log('startPolling')
-  if (pollTimer) return
-  console.log('开始轮询请求数据...')
-  loading.value = true
-  pollTimer = setInterval(() => {
-    getJobLog(props.jobLogId)
-  }, POLLING_INTERVAL)
-}
+// const POLLING_INTERVAL = 3000
+// let pollTimer = null
+// const startPolling = () => {
+//   console.log('startPolling')
+//   if (pollTimer) return
+//   console.log('开始轮询请求数据...')
+//   loading.value = true
+//   pollTimer = setInterval(() => {
+//     getJobLog(props.jobLogId)
+//   }, POLLING_INTERVAL)
+// }
 
-const stopPolling = () => {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
-    console.log('停止轮询')
-    loading.value = false
-  }
-}
+// const stopPolling = () => {
+//   if (pollTimer) {
+//     clearInterval(pollTimer)
+//     pollTimer = null
+//     console.log('停止轮询')
+//     loading.value = false
+//   }
+// }
 // 监听状态变化
 watch(
   () => jobLogData.value.status,
   (newStatus) => {
     console.log('newStatus:' + newStatus)
-    if (newStatus === '2') {
-      startPolling()
-    } else {
-      stopPolling()
+    if (newStatus !== '2') {
+      unsubscribeTask()
+      loading.value = false
     }
+    // stopPolling()
   },
   // { immediate: true },
 )
 // 清理
 onUnmounted(() => {
-  stopPolling()
+  console.log('onUnmounted')
+  // stopPolling()
+  unsubscribeTask()
 })
 
 const statusText = computed(() => {
@@ -144,7 +156,8 @@ const statusText = computed(() => {
     0: '执行成功',
     1: '执行失败',
     2: '执行中',
-    3: '等待执行',
+    3: '系统退出',
+    4: '等待执行',
   }
   return statusMap[jobLogData.value.status] || '未知状态'
 })
@@ -193,8 +206,43 @@ const copyLogContent = async () => {
     ElMessage.success('日志内容已复制')
   }
 }
+
+//  unsubscribeTask 方法
+const unsubscribeTask = () => {
+  console.log('unsubscribeTask')
+  if (jobLogDetailSubscriptionList.value && jobLogDetailSubscriptionList.value.length > 0) {
+    jobLogDetailSubscriptionList.value.forEach((subId) => {
+      if (subId) {
+        console.log('取消订阅任务:', subId)
+        jobLogWebSocketService.unsubscribeToTask(subId) // 使用 subId 取消订阅
+      }
+    })
+    jobLogDetailSubscriptionList.value = [] // 清空列表
+  }
+}
+const subscribeTask = (taskId) => {
+  console.log('订阅任务:', taskId)
+  if (!taskId) return null
+
+  const subId = jobLogWebSocketService.subscribeToTask(taskId, (data) => {
+    console.log('收到任务更新1111:')
+    if (data.code == 200) {
+      if (data.type === 'update') {
+        jobLogData.value = data.data
+      }
+    } else {
+      console.log('更新失败:', data.msg)
+    }
+  })
+
+  if (subId) {
+    jobLogDetailSubscriptionList.value.push(subId)
+  }
+  return subId
+}
 defineExpose({
-  stopPolling,
+  // stopPolling,
+  unsubscribeTask,
   start,
 })
 // 日志消息（直接使用props中的数据）
